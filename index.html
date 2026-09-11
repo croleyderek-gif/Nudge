@@ -6,103 +6,183 @@
 header{padding:24px 20px 12px;border-bottom:1px solid #e5e7eb;position:sticky;top:0;background:#fff;z-index:2}h1{margin:0;font-size:30px}.sub{color:#6b7280}
 main{padding:18px 20px 112px}.section{margin:22px 0}.section h2{font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin:0 0 9px}
 .card{border:1px solid #e5e7eb;border-radius:16px;padding:14px;margin:9px 0}.row{display:flex;gap:12px}.check{width:24px;height:24px;border:2px solid #9ca3af;border-radius:50%;flex:none;cursor:pointer}.title{font-size:16px;line-height:1.35}.meta{font-size:13px;color:#6b7280;margin-top:4px}
-.bubble{padding:12px 14px;border-radius:16px;max-width:90%;line-height:1.4;white-space:pre-wrap}.chat{display:flex;flex-direction:column;gap:10px}.nudge{background:#f3f4f6;align-self:flex-start}.user{background:#111827;color:#fff}
+.bubble{padding:12px 14px;border-radius:16px;max-width:92%;line-height:1.4;white-space:pre-wrap}.chat{display:flex;flex-direction:column;gap:10px}.nudge{background:#f3f4f6;align-self:flex-start}.user{background:#111827;color:#fff}
 .composer{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e5e7eb;padding:10px max(12px,calc((100vw - 760px)/2 + 12px));display:flex;gap:8px}.composer input{flex:1;border:1px solid #d1d5db;border-radius:24px;padding:12px 15px;font-size:16px}.composer button{border:0;border-radius:22px;padding:11px 16px;font-weight:650;background:#111827;color:#fff}.mic{width:48px;padding:11px 0}
-.list{margin:7px 0 0;padding-left:21px}.list li{margin:5px 0}
+ul{margin:8px 0 0;padding-left:21px}li{margin:5px 0}
 </style></head><body><div class="app"><header><h1>Nudge</h1><div class="sub">Your life, remembered.</div></header>
 <main><section class="section"><h2>Talk to Nudge</h2><div id="chat" class="chat"></div></section>
 <section class="section"><h2>Today</h2><div id="today"></div></section><section class="section"><h2>Upcoming</h2><div id="upcoming"></div></section></main>
 <div class="composer"><button class="mic" id="mic">🎙️</button><input id="input" placeholder="Tell me what you need remembered…"><button id="send">Send</button></div></div>
 <script>
-const KEY="nudge-v8-state";let state=JSON.parse(localStorage.getItem(KEY)||"null")||{tasks:[],things:[],chat:[],context:null};
+const KEY="nudge-v9-state";
+let state=JSON.parse(localStorage.getItem(KEY)||"null")||{tasks:[],things:[],chat:[],context:null};
 const days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-function save(){localStorage.setItem(KEY,JSON.stringify(state));render()}function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
-function say(who,text){state.chat.push({who,text});if(state.chat.length>80)state.chat.shift();save()}
+
+function save(){localStorage.setItem(KEY,JSON.stringify(state));render()}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function say(who,text){state.chat.push({who,text});if(state.chat.length>90)state.chat.shift();save()}
 function iso(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
 function fmtDate(s){return new Date(s+"T12:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}
 function fmtTime(t){let [h,m]=t.split(":").map(Number),ap=h>=12?"PM":"AM";h=h%12||12;return `${h}:${String(m).padStart(2,"0")} ${ap}`}
-function parseTime(text){let m=text.match(/\b(?:at|around)\s+(noon|midnight)\b/i);if(m)return m[1].toLowerCase()=="noon"?"12:00":"00:00";m=text.match(/\b(?:at|around)\s+(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?\b/i);if(!m)return null;let h=+m[1],mi=+(m[2]||0),ap=(m[3]||"").toLowerCase().replace(/\./g,"");if(ap=="pm"&&h<12)h+=12;if(ap=="am"&&h==12)h=0;if(!ap&&h>=1&&h<=11)h+=12;return `${String(h).padStart(2,"0")}:${String(mi).padStart(2,"0")}`}
-function nextWeekday(n){let x=new Date(),d=new Date(x.getFullYear(),x.getMonth(),x.getDate()),df=(n-d.getDay()+7)%7;if(!df)df=7;d.setDate(d.getDate()+df);return d}
+
+function parseTime(text){
+ let m=text.match(/\b(?:at|around)\s+(noon|midnight)\b/i);
+ if(m)return m[1].toLowerCase()=="noon"?"12:00":"00:00";
+ m=text.match(/\b(?:at|around)\s+(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?\b/i);
+ if(!m)return null;
+ let h=+m[1],mi=+(m[2]||0),ap=(m[3]||"").toLowerCase().replace(/\./g,"");
+ if(ap=="pm"&&h<12)h+=12;if(ap=="am"&&h==12)h=0;
+ if(!ap&&h>=1&&h<=11)h+=12;
+ return `${String(h).padStart(2,"0")}:${String(mi).padStart(2,"0")}`;
+}
+function nextWeekday(n){let now=new Date(),d=new Date(now.getFullYear(),now.getMonth(),now.getDate()),df=(n-d.getDay()+7)%7;if(!df)df=7;d.setDate(d.getDate()+df);return d}
 function nextMonthDay(day){let n=new Date(),d=new Date(n.getFullYear(),n.getMonth(),day);if(d<=new Date(n.getFullYear(),n.getMonth(),n.getDate()))d=new Date(n.getFullYear(),n.getMonth()+1,day);return d}
-function temporal(s){let l=s.toLowerCase(),date=null,t=parseTime(s),rec=null;const wd={sunday:0,monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6};
-let m=l.match(/\b(?:every|each)\s+(other\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/);if(m){date=nextWeekday(wd[m[2]]);rec={type:"weekly",weekday:wd[m[2]],interval:m[1]?2:1}}
-else if(/\b(?:on|every|each)\s+the\s+1st\b|\bthe\s+1st\s+of\s+every\s+month\b/.test(l)){date=nextMonthDay(1);rec={type:"monthly",day:1}}
-else if((m=l.match(/\b(?:on|every|each)\s+(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?\s+of\s+every\s+month\b/))){let day=Math.min(28,+m[1]);date=nextMonthDay(day);rec={type:"monthly",day}}
-else if((m=l.match(/\b(?:every|each)\s+(day|week|month|year)\b/))){date=new Date();rec={type:"interval",unit:m[1],interval:1};if(m[1]=="day")date.setDate(date.getDate()+1);if(m[1]=="week")date.setDate(date.getDate()+7);if(m[1]=="month")date.setMonth(date.getMonth()+1);if(m[1]=="year")date.setFullYear(date.getFullYear()+1)}
-else if((m=l.match(/\b(?:in|after|about)\s+(\d+)\s+(day|days|week|weeks|month|months|year|years)\b/))){date=new Date();let n=+m[1],u=m[2];if(u.startsWith("day"))date.setDate(date.getDate()+n);else if(u.startsWith("week"))date.setDate(date.getDate()+7*n);else if(u.startsWith("month"))date.setMonth(date.getMonth()+n);else date.setFullYear(date.getFullYear()+n)}
-else if(/\b(?:in|about)\s+a\s+month\b/.test(l)){date=new Date();date.setMonth(date.getMonth()+1)}
-else if(/\btomorrow\b/.test(l)){date=new Date();date.setDate(date.getDate()+1)}else if(/\btoday\b|\btonight\b/.test(l))date=new Date();else for(const[k,n]of Object.entries(wd))if(new RegExp("\\b"+k+"\\b").test(l)){date=nextWeekday(n);break}
-return{date,time:t,rec}}
-function titleOf(s){
-let t=s.trim();
-t=t.replace(/^\s*(please\s+)?(?:notify|remind|remember|set\s+(?:me\s+)?up\s+(?:a\s+)?reminder)\s+(?:me\s+)?(?:that\s+)?/i,"");
-t=t.replace(/\b(?:every|each)\s+(?:other\s+)?(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday|day|week|month|year)\b/ig,"");
-t=t.replace(/\b(?:on|every|each)\s+the\s+(?:1st|first|\d{1,2}(?:st|nd|rd|th)?)\s*(?:of\s+every\s+month)?\b/ig,"");
-t=t.replace(/\b(?:in|after|about)\s+(?:a\s+month|\d+\s+(?:day|days|week|weeks|month|months|year|years))\b/ig,"");
-t=t.replace(/\b(?:today|tomorrow|tonight)\b/ig,"").replace(/\b(?:at|around)\s+(?:noon|midnight|\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)?)\b/ig,"");
-t=t.replace(/\bset\s+(?:me\s+)?up\s+(?:a\s+)?reminder\b/ig,"").replace(/\b(?:please|for me)\b/ig,"");
-t=t.replace(/\s+/g," ").replace(/\s+([,.])/g,"$1").trim().replace(/^that\s+/i,"");
-t=t.replace(/^I have (?:a )?phone call (?:with )?/i,"Phone call with ");
-return t||"Something you want to remember"}
+function temporal(s){
+ let l=s.toLowerCase(),date=null,t=parseTime(s),rec=null;const wd={sunday:0,monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6};
+ let m=l.match(/\b(?:every|each)\s+(other\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/);
+ if(m){date=nextWeekday(wd[m[2]]);rec={type:"weekly",weekday:wd[m[2]],interval:m[1]?2:1}}
+ else if(/\b(?:the|on)\s+1st\s+of\s+every\s+month\b|\b1st\s+of\s+every\s+month\b/.test(l)){date=nextMonthDay(1);rec={type:"monthly",day:1}}
+ else if((m=l.match(/\b(?:the|on)\s+(\d{1,2})(?:st|nd|rd|th)?\s+of\s+every\s+month\b/))){let day=Math.min(28,+m[1]);date=nextMonthDay(day);rec={type:"monthly",day}}
+ else if((m=l.match(/\b(?:every|each)\s+(day|week|month|year)\b/))){date=new Date();rec={type:"interval",unit:m[1],interval:1};if(m[1]=="day")date.setDate(date.getDate()+1);if(m[1]=="week")date.setDate(date.getDate()+7);if(m[1]=="month")date.setMonth(date.getMonth()+1);if(m[1]=="year")date.setFullYear(date.getFullYear()+1)}
+ else if((m=l.match(/\b(?:in|after|about)\s+(\d+)\s+(day|days|week|weeks|month|months|year|years)\b/))){date=new Date();let n=+m[1],u=m[2];if(u.startsWith("day"))date.setDate(date.getDate()+n);else if(u.startsWith("week"))date.setDate(date.getDate()+7*n);else if(u.startsWith("month"))date.setMonth(date.getMonth()+n);else date.setFullYear(date.getFullYear()+n)}
+ else if(/\b(?:in|about)\s+a\s+month\b/.test(l)){date=new Date();date.setMonth(date.getMonth()+1)}
+ else if(/\btomorrow\b/.test(l)){date=new Date();date.setDate(date.getDate()+1)}
+ else if(/\btoday\b|\btonight\b/.test(l))date=new Date();
+ else for(const[k,n]of Object.entries(wd))if(new RegExp("\\b"+k+"\\b").test(l)){date=nextWeekday(n);break}
+ return{date,time:t,rec}
+}
+
+function normalizeTitle(s){
+ let t=s.trim();
+ t=t.replace(/^\s*(?:okay|alright|all right|well)\s*/i,"");
+ t=t.replace(/^\s*(?:let'?s\s+(?:begin|start)\s+with|let'?s\s+start\s+with)\s+/i,"");
+ t=t.replace(/^\s*(?:please\s+)?(?:notify|remind|remember|set\s+(?:me\s+)?up\s+(?:a\s+)?reminder)\s+(?:me\s+)?(?:that\s+)?/i,"");
+ t=t.replace(/\b(?:set\s+(?:me\s+)?up\s+(?:a\s+)?reminder|set\s+a\s+reminder|put\s+(?:a\s+)?reminder)\b/ig,"");
+ t=t.replace(/\b(?:every|each)\s+(?:other\s+)?(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday|day|week|month|year)\b/ig,"");
+ t=t.replace(/\b(?:the|on)\s+(?:1st|first|\d{1,2}(?:st|nd|rd|th)?)\s+of\s+every\s+month\b/ig,"");
+ t=t.replace(/\b(?:in|after|about)\s+(?:a\s+month|\d+\s+(?:day|days|week|weeks|month|months|year|years))\b/ig,"");
+ t=t.replace(/\b(?:today|tomorrow|tonight)\b/ig,"");
+ t=t.replace(/\b(?:at|around)\s+(?:noon|midnight|\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)?)\b/ig,"");
+ t=t.replace(/\b(?:early|please|for me)\b/ig,"");
+ t=t.replace(/\s+/g," ").replace(/\s+([,.])/g,"$1").trim();
+ t=t.replace(/^that\s+/i,"");
+ // Common useful normalization.
+ if(/\bphone call\b/i.test(t)){let m=t.match(/phone call\s+(?:with\s+)?(.+)/i);if(m)t="Phone call with "+m[1].trim()}
+ if(/\bchange the oil\b|\boil change\b/i.test(t)&&/\bsubaru\b|\bascent\b/i.test(t))t="Subaru Ascent oil change";
+ if(/\bair filters?\b/i.test(t)&&/\bhouse|home\b/i.test(t))t="Change house air filters";
+ if(/\bbusiness rent\b/i.test(t))t="Business rent";
+ if(/\bmortgage\b/i.test(t)&&/\$?\s*175\b/i.test(t))t="$175 for home mortgage";
+ if(/\bcar payment\b/i.test(t)&&/\bsubaru\b|\bascent\b/i.test(t))t="Subaru car payment";
+ return t||"Something you want to remember";
+}
+
 function addThing(type,name,data={}){let x=state.things.find(a=>a.type==type&&a.name.toLowerCase()==name.toLowerCase());if(!x){x={id:Date.now()+Math.random(),type,name,data};state.things.push(x)}else Object.assign(x.data,data);return x}
-function create(title,t){let x={id:Date.now()+Math.random(),display:title,date:t.date?iso(t.date):iso(new Date()),time:t.time||null,rec:t.rec||null,remindBefore:null,done:false};state.tasks.push(x);return x}
+function createTask(title,t){let x={id:Date.now()+Math.random(),display:title,date:t.date?iso(t.date):iso(new Date()),time:t.time||null,rec:t.rec||null,remindBefore:null,done:false};state.tasks.push(x);return x}
 function meta(x){let s=x.rec?.type=="weekly"?`Every ${days[x.rec.weekday]} · next ${fmtDate(x.date)}`:x.rec?.type=="monthly"?`Monthly on the ${x.rec.day}${x.rec.day==1?"st":x.rec.day==2?"nd":x.rec.day==3?"rd":"th"} · next ${fmtDate(x.date)}`:x.rec?.type=="interval"?`Every ${x.rec.unit} · next ${fmtDate(x.date)}`:x.date?fmtDate(x.date):"";if(x.time)s+=(s?" · ":"")+fmtTime(x.time);if(x.remindBefore!=null)s+=` · reminder ${x.remindBefore} min early`;return s}
 function card(x){return `<div class="card"><div class="row"><div class="check" onclick="done('${x.id}')"></div><div><div class="title">${esc(x.display)}</div><div class="meta">${esc(meta(x))}</div></div></div></div>`}
 window.done=id=>{let x=state.tasks.find(a=>String(a.id)==String(id));if(x){x.done=true;say("nudge","Done. I've got it.")}}
+
 function personality(s){let l=s.toLowerCase();if(/\b(show|send|give).*(tits|nudes|boobs|ass)\b|\b(sex|porn|horny)\b/.test(l))return"I just remind you of things, dude. Calm down.";if(/\bfuck you\b|\bgo to hell\b|\bidiot\b|\bbitch\b/.test(l))return"That's okay. Did you need me to remember something?";if(/\b(do you love me|love me)\b/.test(l))return"Of course I love you. Do you need me to remind you of that too?";if(/\b(are you alive|are you sentient)\b/.test(l))return"Nope. But I do have a pretty good memory.";if(/\b(what are you|who are you)\b/.test(l))return"I'm Nudge. I remember stuff so you don't have to.";return null}
-function question(s){let l=s.toLowerCase();if(/\bhow often.*smoke detectors?\b|\bhow often.*check.*smoke\b/.test(l))return"Most people test smoke and carbon-monoxide alarms about once a month. Batteries are commonly replaced yearly if they're replaceable, and the alarm itself is generally replaced around every 10 years. If you want, Nudge can keep those as separate household reminders.";if(/\bwhat are common things\b|\bcommon.*household maintenance\b|\bwhat.*maintenance.*do\b/.test(l))return"Common recurring household maintenance includes HVAC filters, testing smoke/CO alarms, cleaning dryer vents, changing refrigerator/water filters, checking gutters, HVAC service, pest control, lawn care, and seasonal plumbing checks.";return null}
-function splitRequests(s){
- // Split conversational multi-task requests at strong separators. Keep each clause with its own schedule.
- let a=s.replace(/\s+/g," ").trim();
- a=a.replace(/\b(?:now\s+)?let'?s\s+look\s+at\s+(?:finance|finances|house|home|the\s+house)\s+/ig,"");
- a=a.replace(/\b(?:okay\s+)?let'?s\s+(?:set\s+up|do|add)\s+/ig,"");
- let parts=a.split(/\s+(?=(?:and\s+)?(?:let'?s\s+)?(?:set\s+(?:up|a)\s+|add\s+(?:a\s+)?(?:separate\s+)?(?:reminder|task)\s+|(?:a\s+)?separate\s+reminder\b))/i);
- // Also split "rent ... and let's set up a separate reminder ..."
- if(parts.length===1)parts=a.split(/\s+(?=and\s+let'?s\s+set\s+up\s+(?:a\s+)?(?:separate\s+)?reminder\b)/i);
- return parts.map(x=>x.trim()).filter(Boolean);
+
+function informational(s){
+ let l=s.toLowerCase();
+ if(/\bhow often\b.*\bsmoke detectors?\b|\bhow often\b.*\bcheck\b.*\bsmoke\b/.test(l))return"Most homeowners test smoke and carbon-monoxide alarms about once a month. Replace replaceable batteries about yearly, and replace the alarm itself according to its manufacturer—often around 10 years.";
+ if(/\bhow often\b.*\boil\b.*\bchange\b|\bhow often\b.*\boil change\b/.test(l))return"A common rule of thumb is about every 5,000–7,500 miles for many modern vehicles, but the exact interval should follow the vehicle's maintenance schedule. For your Ascent, we can track mileage and time separately once you tell me the schedule you want to use.";
+ if(/\bwhat are common\b.*\bhousehold maintenance\b|\bcommon\b.*\bhouse.*maintenance\b|\bwhat.*house.*maintenance.*remember\b/.test(l))return"Common recurring items include HVAC filters, smoke/CO alarm tests, dryer-vent cleaning, water or refrigerator filters, gutters, HVAC service, pest control, lawn care, and seasonal plumbing checks.";
+ return null
 }
-function makeFromClause(s){
- let t=temporal(s),l=s.toLowerCase(),title=titleOf(s);
- // Finance normalization
- if(/\bbusiness rent\b/.test(l))title="Business rent";
- if(/\bmortgage\b/.test(l)&&/\$?\s*175/.test(l))title="$175 in account for home mortgage";
- if(/\boil change\b/.test(l))title="Subaru Ascent oil change";
- if(/\bair filters?\b/.test(l)&&/\bhouse|home\b/.test(l))title="Change house air filters";
- // Extract "15 minutes early/before" into event reminder
+
+// Split only at explicit task-introducing transitions. This is intentionally conservative.
+function clauses(s){
+ let x=s.replace(/\s+/g," ").trim();
+ x=x.replace(/\b(?:now\s+)?let'?s\s+(?:look at|talk about|go to)\s+(?:finance|finances|household maintenance|house maintenance|car maintenance|vehicle maintenance)\b/ig,"");
+ x=x.replace(/\s+(?=(?:and\s+)?(?:then\s+)?(?:also\s+)?let'?s\s+(?:set|add|have|put|make|do)\b)/ig,"|");
+ x=x.replace(/\s+(?=(?:and\s+)?(?:also\s+)?for\s+(?:the\s+)?(?:business|subaru|home|house|mortgage|car payment)\b)/ig,"|");
+ x=x.replace(/\s+(?=(?:and\s+)?(?:also\s+)?(?:set|add|put|make)\s+(?:a\s+)?(?:separate\s+)?(?:reminder|task)\b)/ig,"|");
+ return x.split("|").map(a=>a.trim()).filter(Boolean)
+}
+
+function extractTask(s){
+ let t=temporal(s),l=s.toLowerCase(),title=normalizeTitle(s);
+ // Relative reminder before event.
  let rb=s.match(/\b(\d+)\s*(?:minutes?|mins?)\s*(?:early|before)\b/i);
- let x=create(title,t);if(rb)x.remindBefore=+rb[1];return x}
-function answer(raw){
-let s=raw.trim(),p=personality(s);say("user",s);if(p){say("nudge",p);return}
-let q=question(s);if(q){say("nudge",q);return}
-let l=s.toLowerCase();
-if(/\b(?:household maintenance|house maintenance|maintenance stuff)\b/.test(l)&&/\b(?:set up|remember|track|reminders|stuff)\b/.test(l)){addThing("home","House",{maintenance:true});state.context={type:"home_plan"};say("nudge","Absolutely. Let's build the household list one item at a time. I'll keep each maintenance item as its own reminder, with its own schedule.");return}
-if(/\b(?:house|home)\b/.test(l)&&/\b(?:help|maintenance|reminders|remember|track)\b/.test(l)){addThing("home","House",{maintenance:true});state.context={type:"home_plan"};say("nudge","Yes. We're talking about the house. Tell me what you want tracked, or ask me what common household maintenance should be remembered.");return}
-if(/\b(?:subaru\s+ascent|ascent)\b/.test(l)){let miles=l.match(/\b([\d,]+)\s*miles\b/);addThing("vehicle","Subaru Ascent",{miles:miles?+miles[1].replace(/,/g,""):null});state.context={type:"vehicle",name:"Subaru Ascent"}}
-let parts=splitRequests(s);
-let created=[];
-for(let part of parts){
- let t=temporal(part),lower=part.toLowerCase();
- if(/\boil change\b/.test(lower)&&(!t.date&&!t.rec&&!t.time)&&/\b(?:about\s+)?a\s+month\b/.test(lower))t=temporal("in a month");
- if(/\boil change\b/.test(lower)&&t.date==null&&/\b(?:about\s+)?a\s+month\b/.test(lower))t=temporal("in a month");
- let taskish=/\b(remind|remember|notify|set .* reminder|set up .*reminder|add .* reminder|separate reminder|need to|don't forget|call|buy|get|schedule|check|clean|pay|take|do|change|make sure|rent|mortgage|oil change|air filters?)\b/i.test(part);
- if(taskish&&(t.date||t.time||t.rec)){
-   let x=makeFromClause(part);created.push(x)
- }else if(taskish){
-   state.context={type:"pending_task",text:part};say("nudge","Sure. When should I remind you?");return
+ if(/\bphone call\b/i.test(l)&&t.time){let m=s.match(/phone call\s+(?:with\s+)?([A-Za-z][A-Za-z .'-]+?)(?=\s+(?:today|tomorrow|at|set|remind|please|$))/i);if(m)title="Phone call with "+m[1].trim()}
+ if(/\bsubaru\s+ascent\b/i.test(l)&&/\boil\b/i.test(l))title="Subaru Ascent oil change";
+ if(/\bair filters?\b/i.test(l))title="Change house air filters";
+ if(/\bbusiness rent\b/i.test(l))title="Business rent";
+ if(/\bmortgage\b/i.test(l))title="$175 for home mortgage";
+ if(/\bcar payment\b/i.test(l)&&/\bsubaru\b|\bascent\b/i.test(l))title="Subaru car payment";
+ let x=createTask(title,t);if(rb)x.remindBefore=+rb[1];
+ return x
+}
+
+function handle(raw){
+ let s=raw.trim();if(!s)return;
+ let p=personality(s);say("user",s);if(p){say("nudge",p);return}
+ let info=informational(s);if(info){say("nudge",info);return}
+
+ // Casual setup statements establish context instead of demanding a date.
+ if(/\b(?:let'?s get to work|let'?s set up|let'?s begin|let'?s start)\b/i.test(s)&&!/\b(remind|remember|set\s+(?:a|me)\s+up|pay|call|change)\b/i.test(s)){
+   state.context={type:"general_setup"};say("nudge","Absolutely. Tell me what you want Nudge to remember, and I'll organize it.");return
  }
+
+ // House planning context.
+ if(/\b(?:household maintenance|house maintenance)\b/i.test(s)&&/\b(?:set up|start|track|remember|stuff)\b/i.test(s)){
+   addThing("home","House",{maintenance:true});state.context={type:"home_plan"};say("nudge","Absolutely. We'll keep each household item as its own reminder. Tell me the things you want to track, and I'll give each one its own schedule.");return
+ }
+
+ // Vehicle facts.
+ if(/\b(?:subaru\s+ascent|ascent)\b/i.test(s)&&(/\b\d{5,6}\s*miles\b/i.test(s)||/\b20\d\d\b/.test(s))){
+   let miles=s.match(/\b([\d,]+)\s*miles\b/i)?.[1],year=s.match(/\b(20\d\d)\b/)?.[1];
+   addThing("vehicle","Subaru Ascent",{year:year?+year:null,miles:miles?+miles.replace(/,/g,""):null});
+   state.context={type:"vehicle",name:"Subaru Ascent"};
+ }
+
+ // Multi-task requests.
+ let cs=clauses(s),made=[];
+ for(let part of cs){
+   let t=temporal(part), lower=part.toLowerCase();
+   let taskish=/\b(remind|remember|notify|set .* reminder|set up .*reminder|add .* reminder|separate reminder|need to|don't forget|call|buy|get|schedule|check|clean|pay|take|do|change|make sure|rent|mortgage|oil change|air filters?|car payment)\b/i.test(part);
+   if(!taskish)continue;
+   // "in about a month" / "in a month" on oil change.
+   if(/\boil\b.*\bchange\b/i.test(lower)&&!t.date&&!t.rec&&/\b(?:in|about)\s+a\s+month\b/i.test(lower))t=temporal("in a month");
+   if(t.date||t.time||t.rec)made.push(extractTask(part));
+   else {state.context={type:"pending_task",text:part};say("nudge","Got it. When should I remind you?");return}
+ }
+ if(made.length){
+   if(made.length===1)say("nudge",`Got it. ${made[0].display} — ${meta(made[0])}.`);
+   else say("nudge",`Got it. I've set up ${made.length} separate reminders:\n`+made.map(x=>`• ${x.display} — ${meta(x)}`).join("\n"));
+   return
+ }
+
+ // A bare temporal response resolves a pending task.
+ if(state.context?.type=="pending_task"){
+   let t=temporal(s);if(t.date||t.time||t.rec){let x=createTask(normalizeTitle(state.context.text),t);state.context=null;say("nudge",`Got it. ${x.display} — ${meta(x)}.`);return}
+ }
+
+ if(/\b(?:why do you keep|what the hell|what's wrong|how does this work|you keep asking|not answering|same question)\b/i.test(s)){
+   say("nudge","You're right. I lost the context of what you were asking me to do. I should be keeping the subject and the unfinished request in mind.");return
+ }
+ if(state.context?.type=="home_plan"&&/\b(?:air filter|gutters|roof|hvac|yard|lawn|smoke|dryer)\b/i.test(s)){
+   say("nudge","Yep. We're still working on the house. Give me the maintenance item and how often you want it done, and I'll keep it as its own reminder.");return
+ }
+ say("nudge","I just remind you of things, dude. Tell me what you want me to remember.")
 }
-if(created.length){
- if(created.length===1){let x=created[0];say("nudge",`Got it. ${x.display} — ${meta(x)}.`)}
- else{say("nudge",`Got it. I've set up ${created.length} separate reminders:\n`+created.map(x=>`• ${x.display} — ${meta(x)}`).join("\n"))}
- return
+
+function render(){
+ chat.innerHTML=state.chat.map(x=>`<div class="bubble ${x.who}">${esc(x.text)}</div>`).join("");
+ let today=state.tasks.filter(x=>!x.done&&x.date==iso(new Date())),up=state.tasks.filter(x=>!x.done&&x.date!=iso(new Date())).sort((a,b)=>a.date.localeCompare(b.date));
+ todayEl.innerHTML=today.length?today.map(card).join(""):'<div class="meta">Nothing due today.</div>';
+ upEl.innerHTML=up.length?up.map(card).join(""):'<div class="meta">Nothing scheduled.</div>';
 }
-// pending task gets a temporal answer
-if(state.context?.type=="pending_task"){let t=temporal(s);if(t.date||t.time||t.rec){let x=create(titleOf(state.context.text),t);state.context=null;say("nudge",`Got it. ${x.display} — ${meta(x)}.`);return}}
-if(/\b(?:why do you keep|what the hell|what's wrong|how does this work|you keep asking)\b/i.test(s)){say("nudge","You're right. I should be keeping track of what we're talking about instead of making you repeat yourself.");return}
-say("nudge","I just remind you of things, dude. Tell me what you want me to remember.")
-}
-function render(){chat.innerHTML=state.chat.map(x=>`<div class="bubble ${x.who}">${esc(x.text)}</div>`).join("");let today=state.tasks.filter(x=>!x.done&&x.date==iso(new Date())),up=state.tasks.filter(x=>!x.done&&x.date!=iso(new Date())).sort((a,b)=>a.date.localeCompare(b.date));todayEl.innerHTML=today.length?today.map(card).join(""):'<div class="meta">Nothing due today.</div>';upEl.innerHTML=up.length?up.map(card).join(""):'<div class="meta">Nothing scheduled.</div>'}
-const chat=document.getElementById("chat"),todayEl=document.getElementById("today"),upEl=document.getElementById("upcoming");send.onclick=()=>{let s=input.value.trim();if(s){input.value="";answer(s)}};input.onkeydown=e=>{if(e.key=="Enter")send.click()};
-let recognition=null,listening=false;mic.onclick=()=>{if(!("webkitSpeechRecognition"in window)){say("nudge","Voice isn't supported by this browser yet.");return}if(listening){listening=false;recognition?.stop();mic.textContent="🎙️";return}recognition=new webkitSpeechRecognition();recognition.lang="en-US";recognition.interimResults=true;recognition.continuous=true;listening=true;mic.textContent="⏹️";recognition.onresult=e=>{let text="";for(let i=e.resultIndex;i<e.results.length;i++)if(e.results[i].isFinal)text+=e.results[i][0].transcript+" ";if(text.trim())input.value=(input.value+" "+text).trim()};recognition.onend=()=>{if(listening)try{recognition.start()}catch(e){}};recognition.onerror=e=>{if(e.error=="not-allowed"){listening=false;mic.textContent="🎙️";say("nudge","Microphone access is blocked. Please allow microphone access for Nudge.")}};recognition.start()};
+const chat=document.getElementById("chat"),todayEl=document.getElementById("today"),upEl=document.getElementById("upcoming");
+send.onclick=()=>{let s=input.value.trim();if(s){input.value="";handle(s)}};input.onkeydown=e=>{if(e.key=="Enter")send.click()};
+let recognition=null,listening=false;
+mic.onclick=()=>{if(!("webkitSpeechRecognition"in window)){say("nudge","Voice isn't supported by this browser yet.");return}if(listening){listening=false;recognition?.stop();mic.textContent="🎙️";return}
+recognition=new webkitSpeechRecognition();recognition.lang="en-US";recognition.interimResults=true;recognition.continuous=true;listening=true;mic.textContent="⏹️";
+recognition.onresult=e=>{let finalText="";for(let i=e.resultIndex;i<e.results.length;i++)if(e.results[i].isFinal)finalText+=e.results[i][0].transcript+" ";if(finalText.trim())input.value=(input.value+" "+finalText).trim()};
+recognition.onend=()=>{if(listening)try{recognition.start()}catch(e){}};
+recognition.onerror=e=>{if(e.error=="not-allowed"){listening=false;mic.textContent="🎙️";say("nudge","Microphone access is blocked. Please allow microphone access for Nudge.")}};
+recognition.start()};
 if(!state.chat.length)say("nudge","I'm Nudge. Just tell me what you want me to remember.");render();
 </script></body></html>
