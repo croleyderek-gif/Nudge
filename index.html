@@ -3,138 +3,192 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#111827">
+<meta name="theme-color" content="#101827">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Nudge — Your life, remembered.</title>
 <link rel="manifest" href="manifest.json">
-<title>Nudge — Remember It For Me</title>
 <style>
-:root{--bg:#f5f5f3;--card:#fff;--text:#171717;--muted:#737373;--line:#e5e5e5;--accent:#111827;--green:#15803d;--danger:#b91c1c}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--text)}
-.app{max-width:720px;margin:auto;min-height:100vh;padding:22px 18px 110px}
-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
-.brand{font-weight:800;font-size:24px;letter-spacing:-.5px}.date{font-size:13px;color:var(--muted)}
-h1{font-size:34px;letter-spacing:-1.2px;margin:10px 0 4px}.sub{color:var(--muted);margin-bottom:20px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px;margin:12px 0;box-shadow:0 2px 12px #00000006}
-.section-title{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:10px}
-.task{display:flex;gap:12px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line)}
-.task:last-child{border-bottom:0}.task input{width:22px;height:22px;accent-color:var(--accent)}.task-main{flex:1}.task-title{font-size:16px}.meta{font-size:12px;color:var(--muted);margin-top:3px}
-.empty{color:var(--muted);padding:10px 0}.calendar{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)}.calendar:last-child{border:0}
-.voice{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);width:min(680px,calc(100% - 32px));display:flex;gap:10px}
-button{border:0;border-radius:15px;padding:14px 17px;font:inherit;font-weight:650;cursor:pointer}
-.talk{flex:1;background:var(--accent);color:#fff;box-shadow:0 8px 24px #0002}.mic{font-size:20px;padding:12px 18px}
-.secondary{background:#fff;border:1px solid var(--line)}.small{padding:9px 12px;font-size:13px}
-.input-row{display:flex;gap:8px;margin-top:12px}.input-row input{flex:1;border:1px solid var(--line);border-radius:14px;padding:13px;font:inherit;background:#fff}
-.status{font-size:13px;color:var(--muted);min-height:18px;margin-top:8px}
-.pill{display:inline-block;background:#f0f0ef;border-radius:999px;padding:5px 9px;font-size:12px;color:#525252}
-.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:11px 15px;border-radius:12px;display:none;z-index:5;font-size:14px}
-.modal{position:fixed;inset:0;background:#0006;display:none;align-items:flex-end;justify-content:center;z-index:4}.sheet{background:#fff;width:min(720px,100%);border-radius:24px 24px 0 0;padding:20px;max-height:85vh;overflow:auto}.sheet h2{margin-top:0}
-.row{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:10px 0}.row input,.row select{padding:10px;border:1px solid var(--line);border-radius:10px;font:inherit}
-@media(min-width:700px){.app{padding-top:35px}.modal{align-items:center}.sheet{border-radius:24px}}
+:root{--bg:#f6f7f8;--card:#fff;--ink:#101827;--muted:#697386;--line:#e5e7eb;--accent:#101827;--soft:#eef1f5}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.app{max-width:760px;margin:auto;padding:28px 18px 110px}.top{display:flex;justify-content:space-between;align-items:end;margin-bottom:22px}.title{font-size:42px;font-weight:800;letter-spacing:-1.5px}.date{color:var(--muted);font-size:16px;margin-top:2px}.gear{border:1px solid var(--line);background:#fff;border-radius:50%;width:42px;height:42px;font-size:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:20px;margin-bottom:16px;box-shadow:0 3px 15px #00000008}
+h2{font-size:13px;letter-spacing:1.4px;color:#687183;margin:0 0 14px;text-transform:uppercase}
+.task{display:flex;gap:13px;align-items:flex-start;padding:15px 0;border-top:1px solid var(--line)}.task:first-of-type{border-top:0}
+.check{width:25px;height:25px;border:1.5px solid #9299a4;border-radius:7px;background:#fff;flex:none}.task-main{flex:1}.task-title{font-size:18px;line-height:1.3}.task-meta{color:var(--muted);font-size:14px;margin-top:5px}.later{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 13px;font-weight:650}
+.empty{color:var(--muted);padding:8px 0}.chat{display:flex;flex-direction:column;gap:10px;max-height:410px;overflow:auto}.bubble{padding:12px 15px;border-radius:18px;max-width:88%;line-height:1.4}.nudge{background:var(--soft);align-self:flex-start}.me{background:var(--accent);color:#fff;align-self:flex-end}
+.composer{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);width:min(724px,calc(100% - 28px));display:flex;gap:8px;background:#101827;padding:8px;border-radius:18px;box-shadow:0 12px 35px #0005}
+input{min-width:0;flex:1;border:0;background:#fff;border-radius:12px;padding:14px;font-size:16px;outline:none}.send,.mic{border:0;border-radius:12px;background:#fff;color:#101827;font-weight:800;padding:0 16px}.mic{width:54px;font-size:21px}
+.small{font-size:13px;color:var(--muted)}.hidden{display:none!important}
+dialog{border:0;border-radius:20px;padding:22px;max-width:480px;width:calc(100% - 32px)}dialog::backdrop{background:#0008}.row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}.close{margin-top:16px;width:100%;padding:12px;border:0;border-radius:12px;background:#101827;color:#fff;font-weight:700}
 </style>
 </head>
 <body>
-<div class="toast" id="toast"></div>
 <div class="app">
-<header><div class="brand">Nudge</div><button class="secondary small" onclick="openSettings()">Settings</button></header>
-<h1>Today</h1><div class="sub" id="greeting">Here's what matters today.</div>
+  <div class="top"><div><div class="title">Today</div><div class="date" id="date"></div></div><button class="gear" id="settings">⚙</button></div>
 
-<div class="card">
-  <div class="section-title">Your stuff</div>
-  <div id="tasks"></div>
-  <div class="input-row">
-    <input id="quickInput" placeholder="Tell me something to remember…" onkeydown="if(event.key==='Enter') quickAdd()">
-    <button class="secondary" onclick="quickAdd()">Add</button>
-  </div>
-  <div class="status" id="voiceStatus"></div>
+  <section class="card">
+    <h2>Your stuff</h2>
+    <div id="tasks"></div>
+  </section>
+
+  <section class="card">
+    <h2>Talk to Nudge</h2>
+    <div class="chat" id="chat"></div>
+    <div class="small" style="margin-top:10px">Talk naturally. Nudge will ask follow-up questions when it needs more information.</div>
+  </section>
 </div>
 
-<div class="card">
-  <div class="section-title">Calendar</div>
-  <div id="calendar">
-    <div class="calendar"><span>No calendar connected yet.</span><span class="pill">Optional</span></div>
-  </div>
+<div class="composer">
+  <button class="mic" id="mic" title="Talk">🎙</button>
+  <input id="input" autocomplete="off" placeholder="Tell me something to remember…">
+  <button class="send" id="send">Send</button>
 </div>
 
-<div class="card">
-  <div class="section-title">Nudge</div>
-  <div id="nudgeText">I’ll keep the list simple. Talk to me when you need to add, finish, postpone, or remove something.</div>
-</div>
-</div>
-
-<div class="voice">
-  <button class="talk" onclick="startVoice()"><span class="mic">🎙️</span> Talk to Nudge</button>
-</div>
-
-<div class="modal" id="settingsModal" onclick="if(event.target===this)closeSettings()">
-<div class="sheet">
-<h2>Settings</h2>
-<div class="row"><span>Follow-up questions</span><select id="follow"><option value="normal">Normal</option><option value="off">Off</option><option value="persistent">Persistent</option></select></div>
-<div class="row"><span>Morning summary</span><select id="morning"><option>On</option><option>Off</option></select></div>
-<div class="row"><span>Personality</span><select id="personality"><option>Casual</option><option>Friendly</option><option>Straightforward</option><option>Funny</option></select></div>
-<p class="meta">This prototype stores your reminders on this device. No bank connection or other account access is required.</p>
-<button class="secondary" onclick="closeSettings()">Close</button>
-</div></div>
+<dialog id="settingsDialog">
+  <h2>Settings</h2>
+  <div class="row"><span>Follow-up reminders</span><select id="follow"><option>Normal</option><option>Off</option><option>Persistent</option></select></div>
+  <div class="row"><span>Morning summary</span><select id="morning"><option>On</option><option>Off</option></select></div>
+  <button class="close" id="closeSettings">Done</button>
+</dialog>
 
 <script>
-const KEY='nudge_tasks_v1';
-let tasks=JSON.parse(localStorage.getItem(KEY)||'[]');
-let recognition=null;
+const KEY="nudge_v2_tasks", CHAT="nudge_v2_chat", SETTINGS="nudge_v2_settings";
+let tasks=JSON.parse(localStorage.getItem(KEY)||"[]");
+let chat=JSON.parse(localStorage.getItem(CHAT)||"[]");
+let settings=JSON.parse(localStorage.getItem(SETTINGS)||'{"follow":"Normal","morning":"On"}');
+let pending=null;
 
-function save(){localStorage.setItem(KEY,JSON.stringify(tasks));render();}
-function toast(s){const t=document.getElementById('toast');t.textContent=s;t.style.display='block';setTimeout(()=>t.style.display='none',2200)}
-function render(){
-  const d=new Date(), today=d.toISOString().slice(0,10);
-  document.getElementById('greeting').textContent=d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})+'.';
-  const el=document.getElementById('tasks'); el.innerHTML='';
-  const due=tasks.filter(t=>!t.done && t.due<=today).sort((a,b)=>a.due.localeCompare(b.due));
-  if(!due.length){el.innerHTML='<div class="empty">You’re good. Nothing due today.</div>'}
-  due.forEach(t=>{
-    const row=document.createElement('div');row.className='task';
-    row.innerHTML=`<input type="checkbox" onchange="completeTask('${t.id}')"><div class="task-main"><div class="task-title">${esc(t.title)}</div><div class="meta">${t.due===today?'Today':('Due '+t.due)}${t.recurring?' · '+esc(t.recurring):''}</div></div><button class="secondary small" onclick="postpone('${t.id}')">Later</button>`;
-    el.appendChild(row);
-  });
+const $=id=>document.getElementById(id);
+const save=()=>localStorage.setItem(KEY,JSON.stringify(tasks));
+const saveChat=()=>localStorage.setItem(CHAT,JSON.stringify(chat));
+const today=new Date();
+$("date").textContent=today.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})+".";
+
+function dateOnly(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate())}
+function addDays(d,n){let x=new Date(d);x.setDate(x.getDate()+n);return x}
+function fmt(d){return d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}
+function iso(d){return d.toISOString().slice(0,10)}
+function startOfWeek(d){let x=dateOnly(d), day=x.getDay(); x.setDate(x.getDate()+(day===0?-6:1-day)); return x}
+function nextWeekday(name){
+ const names=["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+ let target=names.indexOf(name.toLowerCase()), d=dateOnly(new Date()), delta=(target-d.getDay()+7)%7;
+ if(delta===0) delta=7; return addDays(d,delta)
 }
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
-function completeTask(id){const t=tasks.find(x=>x.id===id);if(t){t.done=true;toast('Done.');save()}}
-function postpone(id){const t=tasks.find(x=>x.id===id);if(!t)return;const d=new Date(t.due+'T12:00:00');d.setDate(d.getDate()+1);t.due=d.toISOString().slice(0,10);toast('Moved to tomorrow.');save()}
-function quickAdd(){const input=document.getElementById('quickInput');const text=input.value.trim();if(!text)return;handleSpeech(text);input.value=''}
-function addTask(title,due){tasks.push({id:crypto.randomUUID(),title,due:due||new Date().toISOString().slice(0,10),done:false});save()}
 function parseDate(text){
-  const now=new Date(); let d=new Date(now);
-  let m=text.match(/in\\s+(\\d+)\\s+(day|days|week|weeks|month|months)/i);
-  if(m){let n=+m[1], unit=m[2].toLowerCase(); if(unit.startsWith('day'))d.setDate(d.getDate()+n); else if(unit.startsWith('week'))d.setDate(d.getDate()+n*7); else d.setMonth(d.getMonth()+n);return d.toISOString().slice(0,10)}
-  if(/tomorrow/i.test(text)){d.setDate(d.getDate()+1);return d.toISOString().slice(0,10)}
-  if(/next week/i.test(text)){d.setDate(d.getDate()+7);return d.toISOString().slice(0,10)}
-  if(/today/i.test(text))return now.toISOString().slice(0,10);
-  return now.toISOString().slice(0,10)
+ let t=text.toLowerCase(), base=dateOnly(new Date());
+ let m=t.match(/\b(?:in|after)\s+(\d+)\s+(day|days|week|weeks|month|months|year|years)\b/);
+ if(m){let n=+m[1], u=m[2]; if(u.startsWith("day")) return addDays(base,n); if(u.startsWith("week")) return addDays(base,n*7); if(u.startsWith("month")){let d=new Date(base);d.setMonth(d.getMonth()+n);return d} let d=new Date(base);d.setFullYear(d.getFullYear()+n);return d}
+ if(/\btomorrow\b/.test(t)) return addDays(base,1);
+ if(/\btonight\b/.test(t)) return base;
+ if(/\bnext week\b/.test(t)) return addDays(base,7);
+ let w=t.match(/\bnext\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/); if(w) return nextWeekday(w[1]);
+ let md=t.match(/\b(?:on\s+)?([a-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?\b/);
+ if(md){let months=["january","february","march","april","may","june","july","august","september","october","november","december"], mi=months.indexOf(md[1]); if(mi>=0){let d=new Date(base.getFullYear(),mi,+md[2]); if(d<base)d.setFullYear(d.getFullYear()+1); return d}}
+ return null
 }
-function cleanTitle(text){return text.replace(/^(hey\\s+)?(nudge[, ]*)?/i,'').replace(/^remind me (to )?/i,'').replace(/\\s+(today|tomorrow|next week|in\\s+\\d+\\s+(day|days|week|weeks|month|months))\\.?$/i,'').trim().replace(/[.?!]+$/,'')}
-function handleSpeech(text){
-  const lower=text.toLowerCase();
-  if(/^(done|did it|yep|yes|got it|already handled)/i.test(lower)){
-    const due=tasks.find(t=>!t.done); if(due){due.done=true;toast('Marked "'+due.title+'" done.');save();return}
-  }
-  const cancel=lower.match(/(?:forget|cancel|remove|delete) (?:that|the )?(.+)/i);
-  if(cancel){const term=cancel[1].replace(/[.?!]+$/,'');const idx=tasks.findIndex(t=>t.title.toLowerCase().includes(term));if(idx>=0){toast('Removed "'+tasks[idx].title+'".');tasks.splice(idx,1);save();return}}
-  const postponeMatch=lower.match(/(?:push|move|postpone) (?:that|it) (?:to )?(tomorrow|next week)/i);
-  if(postponeMatch){const due=tasks.find(t=>!t.done);if(due){due.due=parseDate(postponeMatch[1]);toast('Moved "'+due.title+'".');save();return}}
-  const title=cleanTitle(text);
-  if(title){addTask(title,parseDate(text));toast('I’ll remember that.')}
+function recurrence(text){
+ let t=text.toLowerCase();
+ let m=t.match(/\b(?:every|each)\s+(\d+)\s+(day|days|week|weeks|month|months|year|years)\b/);
+ if(!m)return null; return {n:+m[1],unit:m[2].replace(/s$/,"")};
 }
-function startVoice(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){toast('Voice input needs Chrome on a secure web connection.');return}
-  if(recognition){recognition.stop();recognition=null;return}
-  recognition=new SR();recognition.lang='en-US';recognition.interimResults=false;recognition.maxAlternatives=1;
-  document.getElementById('voiceStatus').textContent='Listening…';
-  recognition.onresult=e=>{const text=e.results[0][0].transcript;document.getElementById('voiceStatus').textContent='You said: '+text;handleSpeech(text)};
-  recognition.onerror=e=>{document.getElementById('voiceStatus').textContent='Voice error: '+e.error};
-  recognition.onend=()=>{recognition=null};
-  recognition.start();
+function cleanTitle(text){
+ let t=text.trim();
+ t=t.replace(/^(and\s+)?(?:i\s+)?(?:need|want|have|got)\s+(?:to\s+)?/i,"");
+ t=t.replace(/^(please\s+)?remind me (?:to\s+)?/i,"");
+ t=t.replace(/\b(?:in|after)\s+\d+\s+(?:day|days|week|weeks|month|months|year|years)\b/ig,"");
+ t=t.replace(/\b(?:every|each)\s+\d+\s+(?:day|days|week|weeks|month|months|year|years)\b/ig,"");
+ t=t.replace(/\b(?:today|tomorrow|tonight|next week|next (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b/ig,"");
+ t=t.replace(/\s+/g," ").replace(/\s+([,.!?])/g,"$1").trim();
+ return t.charAt(0).toUpperCase()+t.slice(1);
 }
-function openSettings(){document.getElementById('settingsModal').style.display='flex'}
-function closeSettings(){document.getElementById('settingsModal').style.display='none'}
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
-render();
+function taskText(t){
+ let s=fmt(new Date(t.due));
+ if(t.recur)s+=" · every "+t.recur.n+" "+t.recur.unit+(t.recur.n===1?"":"s");
+ return s;
+}
+function render(){
+ const box=$("tasks"), now=dateOnly(new Date());
+ let visible=tasks.filter(t=>!t.done && dateOnly(new Date(t.due))<=now).sort((a,b)=>a.due.localeCompare(b.due));
+ box.innerHTML=visible.length?visible.map(t=>`<div class="task"><button class="check" data-done="${t.id}"></button><div class="task-main"><div class="task-title">${esc(t.title)}</div><div class="task-meta">${taskText(t)}</div></div><button class="later" data-later="${t.id}">Later</button></div>`).join(""):'<div class="empty">Nothing you need to do today. Nice.</div>';
+ document.querySelectorAll("[data-done]").forEach(b=>b.onclick=()=>complete(b.dataset.done));
+ document.querySelectorAll("[data-later]").forEach(b=>b.onclick=()=>postpone(b.dataset.later));
+}
+function esc(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function addTask(title,due,recur=null){
+ let t={id:crypto.randomUUID(),title:cleanTitle(title),due:iso(due),recur,done:false,created:Date.now()};
+ tasks.push(t);save();render();return t
+}
+function complete(id){
+ let t=tasks.find(x=>x.id===id); if(!t)return;
+ if(t.recur){let d=new Date(t.due); if(t.recur.unit==="day")d=addDays(d,t.recur.n); if(t.recur.unit==="week")d=addDays(d,7*t.recur.n); if(t.recur.unit==="month"){d.setMonth(d.getMonth()+t.recur.n)} if(t.recur.unit==="year")d.setFullYear(d.getFullYear()+t.recur.n); t.due=iso(d)}
+ else t.done=true;
+ save();render();say(t.recur?`Done. I'll remind you again ${fmt(new Date(t.due))}.`:`Done — I'll leave that one alone.`);
+}
+function postpone(id){
+ let t=tasks.find(x=>x.id===id);if(!t)return; t.due=iso(addDays(new Date(),1));save();render();say(`Okay. I'll move "${t.title}" to tomorrow.`);
+}
+function say(text){chat.push({who:"nudge",text});saveChat();renderChat()}
+function renderChat(){ $("chat").innerHTML=chat.slice(-20).map(x=>`<div class="bubble ${x.who==="me"?"me":"nudge"}">${esc(x.text)}</div>`).join(""); $("chat").scrollTop=$("chat").scrollHeight }
+function ask(text){pending=text;say(text)}
+function handle(text){
+ text=text.trim();if(!text)return;
+ chat.push({who:"me",text});saveChat();renderChat();
+ let low=text.toLowerCase();
+
+ if(pending){
+   if(/^(yes|yep|yeah|sure|okay|ok)$/i.test(text) && pending==="confirm"){say("Okay.");pending=null;return}
+   if(pending.startsWith("WHEN:")){
+     let d=parseDate(text); if(!d){let m=text.match(/(\d+)/); if(m)d=addDays(new Date(),+m[1]);}
+     if(d){addTask(pending.slice(5),d,recurrence(text)); pending=null;say(`Got it. I'll put "${cleanTitle(pending||"that")}" on your list for ${fmt(d)}.`);return}
+     say("Give me a date like “in 30 days,” “next Tuesday,” or “tomorrow.”");return;
+   }
+ }
+
+ // Explicit no/deferral language must win over date words.
+ if(/\b(i don't need|don't need|not right now|no need)\b/i.test(text)){
+   let d=parseDate(text), title=cleanTitle(text);
+   if(d){let r=recurrence(text);addTask(title,d,r);say(`Got it. Not today. I'll remind you on ${fmt(d)}${r?` and repeat every ${r.n} ${r.unit}${r.n===1?"":"s"}`:""}.`);return}
+ }
+ let r=recurrence(text), d=parseDate(text);
+ if(d){
+   let title=cleanTitle(text); let t=addTask(title,d,r);
+   say(`Got it. I'll remind you ${fmt(d)}${r?` and repeat every ${r.n} ${r.unit}${r.n===1?"":"s"}`:""}.`);
+   return;
+ }
+ if(/^(remind me|remember|don't let me forget|i need to|i need|i have to)\b/i.test(text) || /\b(i need|i have to|remember to)\b/i.test(text)){
+   let title=cleanTitle(text); ask(`When do you want me to remind you about "${title}"?`);
+   pending="WHEN:"+title; return;
+ }
+ if(/\bwhat am i forgetting\b|\bwhatever\b|\bwhat should i do\b/i.test(low)){
+   say("I can help build that list. Tell me about your home, vehicles, pets, or anything coming up, and I'll ask the useful questions.");
+   return;
+ }
+ if(/\bmove\b.*\b(apartment|house|home)\b|\bmoving\b/i.test(low)){
+   say("Absolutely. I can build a moving checklist. What date are you moving?");
+   pending="WHEN:Moving tasks"; return;
+ }
+ if(/\bair filter|hvac|gutters|roof|oil change|cat litter|laundry|sheets|groceries|dishes\b/i.test(low)){
+   ask("Sure. Do you want me to remember that? If so, when should it happen?");
+   pending="WHEN:"+cleanTitle(text); return;
+ }
+ say("I can remember that. Tell me when you want it on your list — for example, “tomorrow,” “in 30 days,” or “next Tuesday.”");
+ pending="WHEN:"+cleanTitle(text);
+}
+$("send").onclick=()=>{let v=$("input").value;$("input").value="";handle(v)}
+$("input").addEventListener("keydown",e=>{if(e.key==="Enter")$("send").click()});
+$("settings").onclick=()=>{$("follow").value=settings.follow;$("morning").value=settings.morning;$("settingsDialog").showModal()}
+$("closeSettings").onclick=()=>{settings.follow=$("follow").value;settings.morning=$("morning").value;localStorage.setItem(SETTINGS,JSON.stringify(settings));$("settingsDialog").close()}
+$("mic").onclick=()=>{
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){say("Voice input isn't supported by this browser. You can still type to me.");return}
+ const r=new SR();r.lang=navigator.language||"en-US";r.interimResults=false;r.maxAlternatives=1;
+ r.onresult=e=>handle(e.results[0][0].transcript);
+ r.onerror=()=>say("I didn't catch that. Try again.");
+ r.start();
+};
+if(!chat.length)say("Hey. I'm Nudge. Tell me something you need to remember, and I'll help figure out when it belongs on your list.");
+render();renderChat();
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body>
 </html>

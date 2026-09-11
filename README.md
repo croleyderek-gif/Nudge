@@ -1,30 +1,19 @@
-# Nudge MVP
+# Nudge V2
 
-A first Android-friendly prototype of the voice-first personal assistant we designed.
+This is the improved Android-friendly PWA prototype.
 
-## What works now
-- One-screen "Today" view
-- Add reminders by typing
-- Voice input in supported mobile Chrome environments
-- Natural-language basics: "remind me...", "tomorrow", "in two months", "done", "push it to tomorrow", "forget that"
-- Complete and postpone buttons
-- Local persistence on the device
-- Basic settings for follow-up style/personality
-- Installable as a PWA when served over HTTPS
+## What changed
+- Conversational interaction instead of treating every utterance as a task title.
+- Understands phrases such as "in 30 days", "tomorrow", "next Tuesday", and "every 30 days".
+- Explicit deferrals such as "I don't need to do it right now; I need to do it in 30 days" are handled as a future reminder.
+- Recurring tasks advance when completed.
+- Nudge asks follow-up questions when a date is missing.
+- Voice input remains available.
+- Tasks only appear in Today when actually due.
+- Local data stays on the device.
+
+## Install
+Upload `index.html`, `manifest.json`, and `sw.js` to the root of the GitHub Pages repository. Then open the Pages URL in Android Chrome and use Chrome's "Add to Home screen"/"Install app" option.
 
 ## Important
-This is deliberately a prototype. It does NOT yet have:
-- real AI conversation
-- cloud sync
-- reliable background push notifications
-- calendar integration
-- household-maintenance intelligence
-- accounts/subscriptions
-- production security
-
-## Running on Android
-For the best test, serve this folder from an HTTPS host and open it in Chrome on Android. Chrome can then offer "Add to Home screen" / installation.
-
-Voice recognition is browser-dependent and normally requires a secure (HTTPS) context.
-
-The next engineering step is to replace the simple local parser with a real AI backend and add a proper notification/scheduling service.
+This version is a local prototype. It does not yet use a real AI backend, account system, cloud sync, calendar integration, or reliable server push notifications.
