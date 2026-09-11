@@ -3,384 +3,139 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#101827">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<title>Nudge — Your life, remembered.</title>
+<meta name="theme-color" content="#111827">
 <link rel="manifest" href="manifest.json">
+<title>Nudge</title>
 <style>
-:root{--bg:#f6f7f8;--card:#fff;--ink:#101827;--muted:#697386;--line:#e5e7eb;--accent:#101827;--soft:#eef1f5}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-.app{max-width:760px;margin:auto;padding:28px 18px 110px}.top{display:flex;justify-content:space-between;align-items:end;margin-bottom:22px}.title{font-size:42px;font-weight:800;letter-spacing:-1.5px}.date{color:var(--muted);font-size:16px;margin-top:2px}.gear{border:1px solid var(--line);background:#fff;border-radius:50%;width:42px;height:42px;font-size:20px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:20px;margin-bottom:16px;box-shadow:0 3px 15px #00000008}
-h2{font-size:13px;letter-spacing:1.4px;color:#687183;margin:0 0 14px;text-transform:uppercase}
-.task{display:flex;gap:13px;align-items:flex-start;padding:15px 0;border-top:1px solid var(--line)}.task:first-of-type{border-top:0}
-.check{width:25px;height:25px;border:1.5px solid #9299a4;border-radius:7px;background:#fff;flex:none}.task-main{flex:1}.task-title{font-size:18px;line-height:1.3}.task-meta{color:var(--muted);font-size:14px;margin-top:5px}.later{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 13px;font-weight:650}
-.empty{color:var(--muted);padding:8px 0}.chat{display:flex;flex-direction:column;gap:10px;max-height:410px;overflow:auto}.bubble{padding:12px 15px;border-radius:18px;max-width:88%;line-height:1.4}.nudge{background:var(--soft);align-self:flex-start}.me{background:var(--accent);color:#fff;align-self:flex-end}
-.composer{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);width:min(724px,calc(100% - 28px));display:flex;gap:8px;background:#101827;padding:8px;border-radius:18px;box-shadow:0 12px 35px #0005}
-input{min-width:0;flex:1;border:0;background:#fff;border-radius:12px;padding:14px;font-size:16px;outline:none}.send,.mic{border:0;border-radius:12px;background:#fff;color:#101827;font-weight:800;padding:0 16px}.mic{width:54px;font-size:21px}
-.small{font-size:13px;color:var(--muted)}.hidden{display:none!important}
-dialog{border:0;border-radius:20px;padding:22px;max-width:480px;width:calc(100% - 32px)}dialog::backdrop{background:#0008}.row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}.close{margin-top:16px;width:100%;padding:12px;border:0;border-radius:12px;background:#101827;color:#fff;font-weight:700}
+*{box-sizing:border-box}body{margin:0;background:#f4f5f7;color:#111827;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.app{max-width:760px;margin:auto;min-height:100vh;background:white}
+header{padding:24px 20px 12px;border-bottom:1px solid #e5e7eb;position:sticky;top:0;background:#fff;z-index:2}
+h1{margin:0;font-size:30px} .sub{color:#6b7280;margin-top:3px}
+main{padding:18px 20px 110px}.section{margin:22px 0}.section h2{font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin:0 0 9px}
+.card{border:1px solid #e5e7eb;border-radius:16px;padding:14px;margin:9px 0;background:#fff;box-shadow:0 1px 2px #0000000a}
+.row{display:flex;gap:12px;align-items:flex-start}.check{width:24px;height:24px;border:2px solid #9ca3af;border-radius:50%;flex:none;cursor:pointer}
+.title{font-size:16px;line-height:1.35}.meta{font-size:13px;color:#6b7280;margin-top:4px}
+.empty{color:#9ca3af;text-align:center;padding:25px 10px}
+.chat{display:flex;flex-direction:column;gap:10px}.bubble{padding:12px 14px;border-radius:16px;max-width:88%;line-height:1.4;white-space:pre-wrap}
+.nudge{background:#f3f4f6;align-self:flex-start}.user{background:#111827;color:#fff;align-self:flex-end}
+.composer{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e5e7eb;padding:10px max(12px,calc((100vw - 760px)/2 + 12px));display:flex;gap:8px}
+.composer input{flex:1;border:1px solid #d1d5db;border-radius:24px;padding:12px 15px;font-size:16px;outline:none}
+button{border:0;border-radius:22px;padding:11px 16px;font-weight:650;background:#111827;color:white;cursor:pointer}
+.mic{width:48px;padding:11px 0;font-size:18px}.secondary{background:#e5e7eb;color:#111827}
+.small{font-size:12px;color:#9ca3af}
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="top"><div><div class="title">Today</div><div class="date" id="date"></div></div><button class="gear" id="settings">⚙</button></div>
-
-  <section class="card">
-    <h2>Your stuff</h2>
-    <div id="tasks"></div>
-  </section>
-
-  <section class="card">
-    <h2>Talk to Nudge</h2>
-    <div class="chat" id="chat"></div>
-    <div class="small" style="margin-top:10px">Talk naturally. Nudge will ask follow-up questions when it needs more information.</div>
-  </section>
+<header><h1>Nudge</h1><div class="sub">Your life, remembered.</div></header>
+<main>
+<section class="section"><h2>Talk to Nudge</h2><div id="chat" class="chat"></div></section>
+<section class="section"><h2>Today</h2><div id="today"></div></section>
+<section class="section"><h2>Upcoming</h2><div id="upcoming"></div></section>
+</main>
+<div class="composer"><button class="mic" id="mic">🎙️</button><input id="input" placeholder="Tell me what you need remembered…"><button id="send">Send</button></div>
 </div>
-
-<div class="composer">
-  <button class="mic" id="mic" title="Talk">🎙</button>
-  <input id="input" autocomplete="off" placeholder="Tell me something to remember…">
-  <button class="send" id="send">Send</button>
-</div>
-
-<dialog id="settingsDialog">
-  <h2>Settings</h2>
-  <div class="row"><span>Follow-up reminders</span><select id="follow"><option>Normal</option><option>Off</option><option>Persistent</option></select></div>
-  <div class="row"><span>Morning summary</span><select id="morning"><option>On</option><option>Off</option></select></div>
-  <button class="close" id="closeSettings">Done</button>
-</dialog>
-
 <script>
-const KEY="nudge_v3_tasks", CHAT="nudge_v3_chat", SETTINGS="nudge_v3_settings";
-let tasks=JSON.parse(localStorage.getItem(KEY)||"[]");
-let chat=JSON.parse(localStorage.getItem(CHAT)||"[]");
-let settings=JSON.parse(localStorage.getItem(SETTINGS)||'{"follow":"Normal","morning":"On"}');
-let pending=null;
-
-const $=id=>document.getElementById(id);
-const save=()=>localStorage.setItem(KEY,JSON.stringify(tasks));
-const saveChat=()=>localStorage.setItem(CHAT,JSON.stringify(chat));
-const todayDate=dateOnly(new Date());
-
-$("date").textContent=new Date().toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})+".";
-
-function dateOnly(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate())}
-function addDays(d,n){let x=new Date(d);x.setDate(x.getDate()+n);return x}
-function iso(d){return d.toISOString().slice(0,10)}
+const KEY="nudge-v4-state";
+let state=JSON.parse(localStorage.getItem(KEY)||'null')||{tasks:[],chat:[]};
+const days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+function save(){localStorage.setItem(KEY,JSON.stringify(state));render()}
+function addChat(who,text){state.chat.push({who,text}); if(state.chat.length>40)state.chat.shift(); save()}
+function esc(s){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function nextWeekday(n){let d=new Date(), diff=(n-d.getDay()+7)%7;if(diff===0)diff=7; d.setDate(d.getDate()+diff);return d}
 function fmt(d){return d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}
-function pad(n){return String(n).padStart(2,"0")}
-function localISO(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
-function startOfWeek(d){let x=dateOnly(d), day=x.getDay();x.setDate(x.getDate()+(day===0?-6:1-day));return x}
-function nextWeekday(name){
- const names=["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
- const target=names.indexOf(name.toLowerCase()), d=dateOnly(new Date());
- let delta=(target-d.getDay()+7)%7; if(delta===0)delta=7;
- return addDays(d,delta);
+function isoDate(d){return d.toISOString().slice(0,10)}
+function parseWhen(s){
+ let low=s.toLowerCase(), now=new Date(), d=null, time=null, recurring=null;
+ const wd={sunday:0,monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6};
+ let m=low.match(/\b(?:every|each)\s+(?:other\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/);
+ if(m){let day=wd[m[1]], everyOther=/every\s+other/.test(low); let nd=nextWeekday(day); recurring={type:"weekly",weekday:day,interval:everyOther?2:1}; d=nd}
+ else if((m=low.match(/\b(?:every|each)\s+(day|week|month|year)\b/))){recurring={type:"interval",unit:m[1],interval:1}; d=new Date(now); if(m[1]=="day")d.setDate(d.getDate()+1);if(m[1]=="week")d.setDate(d.getDate()+7);if(m[1]=="month")d.setMonth(d.getMonth()+1);if(m[1]=="year")d.setFullYear(d.getFullYear()+1)}
+ else if((m=low.match(/\b(?:in|after)\s+(\d+)\s+(day|days|week|weeks|month|months|year|years)\b/))){d=new Date(now);let n=+m[1],u=m[2];if(u.startsWith("day"))d.setDate(d.getDate()+n);else if(u.startsWith("week"))d.setDate(d.getDate()+7*n);else if(u.startsWith("month"))d.setMonth(d.getMonth()+n);else d.setFullYear(d.getFullYear()+n)}
+ else if(/\btomorrow\b/.test(low)){d=new Date(now);d.setDate(d.getDate()+1)}
+ else if(/\btoday\b/.test(low)||/\btonight\b/.test(low)){d=new Date(now)}
+ else {for(const [name,n] of Object.entries(wd)){if(new RegExp("\\b"+name+"\\b").test(low)){d=nextWeekday(n);break}}}
+ if((m=low.match(/\b(?:at|around)\s+(noon|midnight|(\d{1,2})(?::(\d{2}))?\s*(am|pm)?)\b/))){let x=m[1];if(x=="noon")time="12:00";else if(x=="midnight")time="00:00";else{let h=+m[3],mi=+(m[4]||0),ap=m[5];if(ap=="pm"&&h<12)h+=12;if(ap=="am"&&h==12)h=0;time=String(h).padStart(2,"0")+":"+String(mi).padStart(2,"0")}}
+ return {date:d,time,recurring}
 }
-
-function parseTime(text){
- let t=text.toLowerCase();
- let m=t.match(/\b(?:at\s*)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
- if(m){
-   let h=+m[1], min=+(m[2]||0), ap=m[3];
-   if(ap==="pm"&&h<12)h+=12;if(ap==="am"&&h===12)h=0;
-   return {hour:h,minute:min,label:`${h%12||12}:${pad(min)} ${h>=12?"PM":"AM"}`};
- }
- m=t.match(/\bat\s+(\d{1,2})(?::(\d{2}))?\b/);
- if(m){
-   let h=+m[1], min=+(m[2]||0);
-   // Without am/pm, preserve the user's stated hour but don't invent
-   // morning/evening semantics. Noon is special-cased.
-   if(h===12)return {hour:12,minute:min,label:`12:${pad(min)} PM`};
- }
- if(/\bnoon\b/.test(t))return {hour:12,minute:0,label:"12:00 PM"};
- if(/\bmidnight\b/.test(t))return {hour:0,minute:0,label:"12:00 AM"};
- return null;
-}
-
-function parseDate(text){
- const t=text.toLowerCase(), base=dateOnly(new Date());
- if(/\btoday\b/.test(t))return base;
- if(/\btomorrow\b/.test(t))return addDays(base,1);
- if(/\btonight\b/.test(t))return base;
- if(/\bnext week\b/.test(t))return addDays(base,7);
-
- let m=t.match(/\b(?:in|after)\s+(\d+)\s+(day|days|week|weeks|month|months|year|years)\b/);
- if(m){
-   let n=+m[1],u=m[2];
-   if(u.startsWith("day"))return addDays(base,n);
-   if(u.startsWith("week"))return addDays(base,n*7);
-   if(u.startsWith("month")){let d=new Date(base);d.setMonth(d.getMonth()+n);return d}
-   let d=new Date(base);d.setFullYear(d.getFullYear()+n);return d;
- }
- m=t.match(/\bnext\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/);
- if(m)return nextWeekday(m[1]);
-
- const months=["january","february","march","april","may","june","july","august","september","october","november","december"];
- m=t.match(/\b(?:on\s+)?([a-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s+(\d{4}))?\b/);
- if(m){
-   let mi=months.indexOf(m[1]);
-   if(mi>=0){
-     let y=+(m[3]||base.getFullYear()),d=new Date(y,mi,+m[2]);
-     if(!m[3]&&d<base)d.setFullYear(y+1);
-     return d;
-   }
- }
- return null;
-}
-
-function recurrence(text){
- const m=text.toLowerCase().match(/\b(?:every|each)\s+(\d+)\s+(day|days|week|weeks|month|months|year|years)\b/);
- if(!m)return null;
- return {n:+m[1],unit:m[2].replace(/s$/,"")};
-}
-
-function stripScheduling(text){
- let t=text;
+function cleanTitle(s){
+ let t=s.trim();
+ t=t.replace(/^\s*(please\s+)?(notify|remind|reminder|remember)\s+me(?:\s+that)?\s*/i,"");
+ t=t.replace(/^\s*(please\s+)?(remember|remind)\s+(that|to)\s*/i,"");
+ t=t.replace(/^\s*(every|each)\s+(other\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday|day|week|month|year)\s*/i,"");
  t=t.replace(/\b(?:in|after)\s+\d+\s+(?:day|days|week|weeks|month|months|year|years)\b/ig,"");
- t=t.replace(/\b(?:every|each)\s+\d+\s+(?:day|days|week|weeks|month|months|year|years)\b/ig,"");
- t=t.replace(/\b(?:today|tomorrow|tonight|noon|midnight)\b/ig,"");
- t=t.replace(/\b(?:next\s+week|next\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b/ig,"");
- t=t.replace(/\b(?:at\s+)?\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/ig,"");
- return t.replace(/\s+/g," ").trim();
+ t=t.replace(/\b(?:today|tomorrow|tonight)\b/ig,"");
+ t=t.replace(/\b(?:at|around)\s+(?:noon|midnight|\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/ig,"");
+ t=t.replace(/\s+/g," ").replace(/\s+([,.])/g,"$1").trim();
+ t=t.replace(/^that\s+/i,"");
+ return t||"Something you want to remember";
 }
-
-function cleanTitle(text){
- let t=stripScheduling(text);
- t=t.replace(/^(?:and\s+)?(?:please\s+)?(?:just\s+)?(?:put|add)\s+(?:it|that)\s+(?:on|to)\s+(?:the\s+)?list\b/ig,"");
- t=t.replace(/^(?:please\s+)?remind\s+me\s+(?:to\s+)?/i,"");
- t=t.replace(/^(?:remember\s+to\s+|don't\s+let\s+me\s+forget\s+|i\s+(?:need|have|want)\s+to\s+|i\s+need\s+|i\s+have\s+to\s+)/i,"");
- t=t.replace(/\b(?:right now|for now)\b/ig,"");
- t=t.replace(/\s+/g," ").replace(/\s+([,.!?])/g,"$1").trim();
- if(!t)return "Task";
- return t.charAt(0).toUpperCase()+t.slice(1);
+function personality(s){
+ const l=s.toLowerCase();
+ if(/\b(show|send|give).*(tits|nudes|boobs|ass)\b|\b(sex|porn|horny)\b/.test(l))
+   return "I just remind you of things, dude. Calm down.";
+ if(/\bfuck you\b|\bgo to hell\b|\bidiot\b/.test(l))
+   return "That's okay. Did you need me to remember something?";
+ if(/\b(do you love me|love me)\b/.test(l))
+   return "Of course I love you. Do you need me to remind you of that too?";
+ if(/\b(are you alive|are you sentient)\b/.test(l))
+   return "Nope. But I do have a pretty good memory.";
+ if(/\b(are you smart|are you stupid)\b/.test(l))
+   return "Smart enough to remember things you forget.";
+ if(/\b(what are you|who are you)\b/.test(l))
+   return "I'm Nudge. I remember stuff so you don't have to.";
+ if(/\b(what are you doing)\b/.test(l))
+   return "Waiting for you to forget something.";
+ if(/\b(joke|make me laugh)\b/.test(l))
+   return "I'm a reminder app. My sense of humor is still pending.";
+ return null;
 }
-
-function extractTask(text){
- let t=text.trim();
- // Scheduling phrases are not the task. Pull them out and keep the rest.
- let title=cleanTitle(t);
- // Common conversational filler should not become the task.
- title=title.replace(/^(?:okay|ok|yeah|yes|sure)[,\s]+/i,"").trim();
- return title||"Task";
+function taskFrom(s, when){
+ let title=cleanTitle(s);
+ // Pull a cleaner mortgage/checking formulation from natural language.
+ let m=s.match(/(?:need to )?make sure (?:I've|I have|we have)\s+(?:got\s+)?(?:\$?\s*)?([\d,.]+)?\s*(?:in|on)\s+(?:the\s+)?(.+?)\s+for\s+(?:the\s+)?mortgage/i);
+ if(m) title=(m[1]?("$"+m[1]+" in "):"Make sure there's money in ")+m[2].trim()+" for the mortgage";
+ return {id:Date.now()+Math.random(),title, date:when.date?isoDate(when.date):null,time:when.time,recurring:when.recurring,done:false,created:Date.now()};
 }
-
-function dueLabel(t){
- let d=new Date(t.due);
- let label=fmt(d);
- if(t.time)label+=" · "+t.time;
- if(t.recur)label+=` · every ${t.recur.n} ${t.recur.unit}${t.recur.n===1?"":"s"}`;
- return label;
+function describe(t){
+ if(!t.date&&!t.recurring)return "No date";
+ let x=t.recurring;
+ if(x?.type==="weekly") return `Every ${days[x.weekday]} · next ${fmt(new Date(t.date+"T12:00:00"))}${t.time?" · "+prettyTime(t.time):""}`;
+ if(x?.type==="interval") return `Every ${x.unit}${x.interval>1?"s":""} · next ${fmt(new Date(t.date+"T12:00:00"))}`;
+ return `${fmt(new Date(t.date+"T12:00:00"))}${t.time?" · "+prettyTime(t.time):""}`;
 }
-
+function prettyTime(x){let [h,m]=x.split(":").map(Number),ap=h>=12?"PM":"AM";h=h%12||12;return `${h}:${String(m).padStart(2,"0")} ${ap}`}
+function isToday(t){return t.date===isoDate(new Date())&&!t.done}
 function render(){
- const box=$("tasks"), now=dateOnly(new Date());
- let visible=tasks.filter(t=>!t.done && dateOnly(new Date(t.due))<=now)
-   .sort((a,b)=>(a.due+a.time||"").localeCompare(b.due+b.time||""));
- box.innerHTML=visible.length?visible.map(t=>`
- <div class="task">
-   <button class="check" data-done="${t.id}"></button>
-   <div class="task-main">
-     <div class="task-title">${esc(t.title)}</div>
-     <div class="task-meta">${esc(dueLabel(t))}</div>
-   </div>
-   <button class="later" data-later="${t.id}">Later</button>
- </div>`).join(""):'<div class="empty">Nothing you need to do today. Nice.</div>';
- document.querySelectorAll("[data-done]").forEach(b=>b.onclick=()=>complete(b.dataset.done));
- document.querySelectorAll("[data-later]").forEach(b=>b.onclick=()=>postpone(b.dataset.later));
+ chat.innerHTML=state.chat.map(x=>`<div class="bubble ${x.who}">${esc(x.text)}</div>`).join("");
+ let today=state.tasks.filter(isToday), future=state.tasks.filter(t=>!t.done&&!isToday(t)&&t.date).sort((a,b)=>a.date.localeCompare(b.date));
+ document.getElementById("today").innerHTML=today.length?today.map(card).join(""):'<div class="empty">Nothing due today.</div>';
+ document.getElementById("upcoming").innerHTML=future.length?future.map(card).join(""):'<div class="empty">Nothing scheduled.</div>';
 }
-
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-
-function addTask(title,due,recur=null,time=null){
- const t={id:crypto.randomUUID(),title:cleanTitle(title),due:iso(due),recur,time,done:false,created:Date.now()};
- tasks.push(t);save();render();return t;
+function card(t){return `<div class="card"><div class="row"><div class="check" onclick="complete('${t.id}')"></div><div><div class="title">${esc(t.title)}</div><div class="meta">${esc(describe(t))}</div></div></div></div>`}
+window.complete=id=>{let t=state.tasks.find(x=>String(x.id)===String(id));if(t){t.done=true;addChat("nudge","Done. I've got it.");}};
+function answer(s){
+ let p=personality(s); if(p){addChat("user",s);addChat("nudge",p);return}
+ let when=parseWhen(s), hasTask=/\b(remind|remember|notify|need to|put .* on|add .* list|make sure|change|call|buy|get|schedule|check|clean|pay|take|do|have a|i need)\b/i.test(s);
+ // A bare temporal phrase resolves the current pending request.
+ if(state.pending && (when.date||when.recurring)){
+   let t=taskFrom(state.pending.text,{date:when.date||new Date(),time:when.time||state.pending.time,recurring:when.recurring||state.pending.recurring});
+   state.tasks.push(t); state.pending=null; addChat("user",s); addChat("nudge",`Got it. I'll remind you about "${t.title}" — ${describe(t)}.`); return;
+ }
+ if(hasTask && (when.date||when.recurring)){
+   let t=taskFrom(s,when);state.tasks.push(t);addChat("user",s);
+   addChat("nudge",`Got it. "${t.title}" is on your list for ${describe(t)}.`);return;
+ }
+ if(hasTask){
+   state.pending={text:s,time:when.time||null,recurring:null};addChat("user",s);addChat("nudge","Sure. When do you want me to remind you? You can say something like “Thursday,” “every Thursday,” “tomorrow at noon,” or “in 30 days.”");return;
+ }
+ if(/^(done|finished|did it|took care of it)$/i.test(s.trim())){addChat("user",s);addChat("nudge","Great. What did you finish?");return}
+ addChat("user",s);addChat("nudge","I just remind you of things, dude. Tell me what you want me to remember.");
 }
-
-function complete(id){
- const t=tasks.find(x=>x.id===id);if(!t)return;
- if(t.recur){
-   let d=new Date(t.due);
-   if(t.recur.unit==="day")d=addDays(d,t.recur.n);
-   if(t.recur.unit==="week")d=addDays(d,7*t.recur.n);
-   if(t.recur.unit==="month")d.setMonth(d.getMonth()+t.recur.n);
-   if(t.recur.unit==="year")d.setFullYear(d.getFullYear()+t.recur.n);
-   t.due=iso(d);
- }else t.done=true;
- save();render();
- say(t.recur?`Done. I'll remind you again ${fmt(new Date(t.due))}${t.time?" at "+t.time:""}.`:`Done — I'll leave that one alone.`);
-}
-
-function postpone(id){
- const t=tasks.find(x=>x.id===id);if(!t)return;
- t.due=iso(addDays(new Date(),1));save();render();
- say(`Okay. I'll move "${t.title}" to tomorrow.`);
-}
-
-function say(text){
- chat.push({who:"nudge",text});saveChat();renderChat();
-}
-function renderChat(){
- $("chat").innerHTML=chat.slice(-20).map(x=>`<div class="bubble ${x.who==="me"?"me":"nudge"}">${esc(x.text)}</div>`).join("");
- $("chat").scrollTop=$("chat").scrollHeight;
-}
-
-// A conversational task workflow.
-// pending is an object, not a magic string hidden in the text.
-function beginTask(title){
- pending={title,needDate:false};
- askDateOrConfirm();
-}
-
-function askDateOrConfirm(){
- if(!pending)return;
- if(pending.needDate){
-   say(`When should I put "${pending.title}" on your list?`);
- }else{
-   say(`Okay. When do you want to do "${pending.title}"?`);
-   pending.needDate=true;
- }
-}
-
-function finishPending(text){
- if(!pending)return false;
-
- const d=parseDate(text);
- const time=parseTime(text);
- const r=recurrence(text);
-
- // "just put it on the list" means TODAY when we're already
- // discussing a task and the user doesn't specify another date.
- if(/\b(?:just\s+)?put\s+(?:it|that)\s+(?:on|to)\s+(?:the\s+)?list\b/i.test(text) ||
-    /^(?:add|save)\s+(?:it|that)\s*(?:to\s+the\s+list)?$/i.test(text.trim())){
-   const t=addTask(pending.title,dateOnly(new Date()),r,time?.label||null);
-   pending=null;
-   say(`Got it. "${t.title}" is on today's list.`);
-   return true;
- }
-
- // A bare "today" is a perfectly valid answer.
- if(d){
-   const title=pending.title;
-   const t=addTask(title,d,r,time?.label||null);
-   pending=null;
-   let when=d.toDateString()===dateOnly(new Date()).toDateString()?"today":fmt(d);
-   say(`Got it. I'll put "${t.title}" on your list for ${when}${time?" at "+time.label:""}${r?` and repeat every ${r.n} ${r.unit}${r.n===1?"":"s"}`:""}.`);
-   return true;
- }
-
- // User may simply say "yes" after being asked to remember.
- if(/^(yes|yeah|yep|sure|okay|ok|do it|sounds good)$/i.test(text.trim()) && pending.needDate){
-   say(`Sure. I just need to know when. "Today" works if you want it today.`);
-   return true;
- }
-
- // Correct date-only followup even when it is phrased naturally.
- if(/\b(?:today|tomorrow|tonight|noon|midnight)\b/i.test(text)){
-   const title=pending.title;
-   const dd=parseDate(text)||dateOnly(new Date());
-   const tt=parseTime(text);
-   const t=addTask(title,dd,r,tt?.label||null);
-   pending=null;
-   say(`Got it. "${t.title}" is set for ${fmt(dd)}${tt?" at "+tt.label:""}.`);
-   return true;
- }
-
- return false;
-}
-
-function handle(text){
- text=text.trim();if(!text)return;
- chat.push({who:"me",text});saveChat();renderChat();
-
- // First let an existing conversation resolve itself.
- if(pending){
-   if(finishPending(text))return;
-
-   // If the user changes the task while answering, treat the new sentence
-   // as a fresh request rather than forcing it through the old question.
-   if(/\b(?:i need|i have to|remind me|remember|put .* on the list|add .* to the list)\b/i.test(text)){
-     pending=null;
-   }else{
-     say(`I can do that. Just give me a simple time like "today", "tomorrow", "at noon today", "next Tuesday", or "in 30 days."`);
-     return;
-   }
- }
-
- const d=parseDate(text), time=parseTime(text), r=recurrence(text);
- const lower=text.toLowerCase();
-
- // Direct, complete request: create immediately.
- // This is the important path for "have a phone call with Ken Braman today at noon".
- if(d){
-   let title=extractTask(text);
-   // If the entire phrase is just scheduling information, ask what the task is.
-   if(!title || /^(today|tomorrow|tonight|noon|midnight|next week)$/i.test(title)){
-     say("Sure. What do you want me to put on your list?");
-     pending={title:"Task",needDate:false};
-     return;
-   }
-   const t=addTask(title,d,r,time?.label||null);
-   say(`Got it. "${t.title}" is on your list for ${d.toDateString()===dateOnly(new Date()).toDateString()?"today":fmt(d)}${time?" at "+time.label:""}${r?` and repeats every ${r.n} ${r.unit}${r.n===1?"":"s"}`:""}.`);
-   return;
- }
-
- // "Put X on the list" without a date means today.
- if(/\b(?:put|add)\b.*\b(?:on|to)\b.*\blist\b/i.test(text)){
-   let title=extractTask(text);
-   const t=addTask(title,dateOnly(new Date()),r,time?.label||null);
-   say(`Done. "${t.title}" is on today's list.`);
-   return;
- }
-
- // Explicit reminder request without a date: ask once, naturally.
- if(/\b(?:remind me|remember to|don't let me forget|i need to|i have to|i've got to|i gotta)\b/i.test(lower)){
-   beginTask(extractTask(text));
-   return;
- }
-
- // Household / life-administration topics can start a conversation.
- if(/\b(?:air filter|hvac|gutters|roof|oil change|cat litter|laundry|sheets|groceries|dishes|moving|move|plumber|phone call|call)\b/i.test(lower)){
-   beginTask(extractTask(text));
-   return;
- }
-
- // "What am I forgetting?" should not create a task.
- if(/\bwhat am i forgetting\b|\bwhatever\b|\bwhat should i do\b/i.test(lower)){
-   say("I can help with that. Tell me about your home, vehicles, pets, upcoming plans, or anything you keep putting off, and I'll help build the list.");
-   return;
- }
-
- say("I can remember things for you. Try something like, “call Ken Braman today at noon,” “change the air filters in 30 days,” or “put laundry on the list.”");
-}
-
-$("send").onclick=()=>{const v=$("input").value;$("input").value="";handle(v)};
-$("input").addEventListener("keydown",e=>{if(e.key==="Enter")$("send").click()});
-
-$("settings").onclick=()=>{
- $("follow").value=settings.follow;$("morning").value=settings.morning;$("settingsDialog").showModal();
-};
-$("closeSettings").onclick=()=>{
- settings.follow=$("follow").value;settings.morning=$("morning").value;
- localStorage.setItem(SETTINGS,JSON.stringify(settings));$("settingsDialog").close();
-};
-
-$("mic").onclick=()=>{
- const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
- if(!SR){say("Voice input isn't supported by this browser. You can still type to me.");return}
- const r=new SR();r.lang=navigator.language||"en-US";r.interimResults=false;r.maxAlternatives=1;
- r.onresult=e=>handle(e.results[0][0].transcript);
- r.onerror=()=>say("I didn't catch that. Try again.");
- r.start();
-};
-
-if(!chat.length){
- say("Hey. I'm Nudge. Tell me what you need to remember. You don't have to phrase it perfectly.");
-}
-render();renderChat();
-
-if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+send.onclick=()=>{let s=input.value.trim();if(s){input.value="";answer(s)}};input.onkeydown=e=>{if(e.key==="Enter")send.click()};
+mic.onclick=()=>{if(!("webkitSpeechRecognition" in window)){addChat("nudge","Voice isn't supported by this browser yet.");return}let r=new webkitSpeechRecognition();r.lang="en-US";r.interimResults=false;r.onresult=e=>{input.value=e.results[0][0].transcript;send.click()};r.start()};
+if(!state.chat.length)addChat("nudge","I'm Nudge. Just tell me what you want me to remember.");
+render();
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
 </script>
-</body>
-</html>
+</body></html>
