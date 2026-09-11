@@ -52,7 +52,7 @@ dialog{border:0;border-radius:20px;padding:22px;max-width:480px;width:calc(100% 
 </dialog>
 
 <script>
-const KEY="nudge_v2_tasks", CHAT="nudge_v2_chat", SETTINGS="nudge_v2_settings";
+const KEY="nudge_v3_tasks", CHAT="nudge_v3_chat", SETTINGS="nudge_v3_settings";
 let tasks=JSON.parse(localStorage.getItem(KEY)||"[]");
 let chat=JSON.parse(localStorage.getItem(CHAT)||"[]");
 let settings=JSON.parse(localStorage.getItem(SETTINGS)||'{"follow":"Normal","morning":"On"}');
@@ -61,123 +61,311 @@ let pending=null;
 const $=id=>document.getElementById(id);
 const save=()=>localStorage.setItem(KEY,JSON.stringify(tasks));
 const saveChat=()=>localStorage.setItem(CHAT,JSON.stringify(chat));
-const today=new Date();
-$("date").textContent=today.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})+".";
+const todayDate=dateOnly(new Date());
+
+$("date").textContent=new Date().toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})+".";
 
 function dateOnly(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate())}
 function addDays(d,n){let x=new Date(d);x.setDate(x.getDate()+n);return x}
-function fmt(d){return d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}
 function iso(d){return d.toISOString().slice(0,10)}
-function startOfWeek(d){let x=dateOnly(d), day=x.getDay(); x.setDate(x.getDate()+(day===0?-6:1-day)); return x}
+function fmt(d){return d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}
+function pad(n){return String(n).padStart(2,"0")}
+function localISO(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+function startOfWeek(d){let x=dateOnly(d), day=x.getDay();x.setDate(x.getDate()+(day===0?-6:1-day));return x}
 function nextWeekday(name){
  const names=["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
- let target=names.indexOf(name.toLowerCase()), d=dateOnly(new Date()), delta=(target-d.getDay()+7)%7;
- if(delta===0) delta=7; return addDays(d,delta)
+ const target=names.indexOf(name.toLowerCase()), d=dateOnly(new Date());
+ let delta=(target-d.getDay()+7)%7; if(delta===0)delta=7;
+ return addDays(d,delta);
 }
-function parseDate(text){
- let t=text.toLowerCase(), base=dateOnly(new Date());
- let m=t.match(/\b(?:in|after)\s+(\d+)\s+(day|days|week|weeks|month|months|year|years)\b/);
- if(m){let n=+m[1], u=m[2]; if(u.startsWith("day")) return addDays(base,n); if(u.startsWith("week")) return addDays(base,n*7); if(u.startsWith("month")){let d=new Date(base);d.setMonth(d.getMonth()+n);return d} let d=new Date(base);d.setFullYear(d.getFullYear()+n);return d}
- if(/\btomorrow\b/.test(t)) return addDays(base,1);
- if(/\btonight\b/.test(t)) return base;
- if(/\bnext week\b/.test(t)) return addDays(base,7);
- let w=t.match(/\bnext\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/); if(w) return nextWeekday(w[1]);
- let md=t.match(/\b(?:on\s+)?([a-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?\b/);
- if(md){let months=["january","february","march","april","may","june","july","august","september","october","november","december"], mi=months.indexOf(md[1]); if(mi>=0){let d=new Date(base.getFullYear(),mi,+md[2]); if(d<base)d.setFullYear(d.getFullYear()+1); return d}}
- return null
-}
-function recurrence(text){
+
+function parseTime(text){
  let t=text.toLowerCase();
- let m=t.match(/\b(?:every|each)\s+(\d+)\s+(day|days|week|weeks|month|months|year|years)\b/);
- if(!m)return null; return {n:+m[1],unit:m[2].replace(/s$/,"")};
+ let m=t.match(/\b(?:at\s*)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
+ if(m){
+   let h=+m[1], min=+(m[2]||0), ap=m[3];
+   if(ap==="pm"&&h<12)h+=12;if(ap==="am"&&h===12)h=0;
+   return {hour:h,minute:min,label:`${h%12||12}:${pad(min)} ${h>=12?"PM":"AM"}`};
+ }
+ m=t.match(/\bat\s+(\d{1,2})(?::(\d{2}))?\b/);
+ if(m){
+   let h=+m[1], min=+(m[2]||0);
+   // Without am/pm, preserve the user's stated hour but don't invent
+   // morning/evening semantics. Noon is special-cased.
+   if(h===12)return {hour:12,minute:min,label:`12:${pad(min)} PM`};
+ }
+ if(/\bnoon\b/.test(t))return {hour:12,minute:0,label:"12:00 PM"};
+ if(/\bmidnight\b/.test(t))return {hour:0,minute:0,label:"12:00 AM"};
+ return null;
 }
-function cleanTitle(text){
- let t=text.trim();
- t=t.replace(/^(and\s+)?(?:i\s+)?(?:need|want|have|got)\s+(?:to\s+)?/i,"");
- t=t.replace(/^(please\s+)?remind me (?:to\s+)?/i,"");
+
+function parseDate(text){
+ const t=text.toLowerCase(), base=dateOnly(new Date());
+ if(/\btoday\b/.test(t))return base;
+ if(/\btomorrow\b/.test(t))return addDays(base,1);
+ if(/\btonight\b/.test(t))return base;
+ if(/\bnext week\b/.test(t))return addDays(base,7);
+
+ let m=t.match(/\b(?:in|after)\s+(\d+)\s+(day|days|week|weeks|month|months|year|years)\b/);
+ if(m){
+   let n=+m[1],u=m[2];
+   if(u.startsWith("day"))return addDays(base,n);
+   if(u.startsWith("week"))return addDays(base,n*7);
+   if(u.startsWith("month")){let d=new Date(base);d.setMonth(d.getMonth()+n);return d}
+   let d=new Date(base);d.setFullYear(d.getFullYear()+n);return d;
+ }
+ m=t.match(/\bnext\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/);
+ if(m)return nextWeekday(m[1]);
+
+ const months=["january","february","march","april","may","june","july","august","september","october","november","december"];
+ m=t.match(/\b(?:on\s+)?([a-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s+(\d{4}))?\b/);
+ if(m){
+   let mi=months.indexOf(m[1]);
+   if(mi>=0){
+     let y=+(m[3]||base.getFullYear()),d=new Date(y,mi,+m[2]);
+     if(!m[3]&&d<base)d.setFullYear(y+1);
+     return d;
+   }
+ }
+ return null;
+}
+
+function recurrence(text){
+ const m=text.toLowerCase().match(/\b(?:every|each)\s+(\d+)\s+(day|days|week|weeks|month|months|year|years)\b/);
+ if(!m)return null;
+ return {n:+m[1],unit:m[2].replace(/s$/,"")};
+}
+
+function stripScheduling(text){
+ let t=text;
  t=t.replace(/\b(?:in|after)\s+\d+\s+(?:day|days|week|weeks|month|months|year|years)\b/ig,"");
  t=t.replace(/\b(?:every|each)\s+\d+\s+(?:day|days|week|weeks|month|months|year|years)\b/ig,"");
- t=t.replace(/\b(?:today|tomorrow|tonight|next week|next (?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b/ig,"");
+ t=t.replace(/\b(?:today|tomorrow|tonight|noon|midnight)\b/ig,"");
+ t=t.replace(/\b(?:next\s+week|next\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b/ig,"");
+ t=t.replace(/\b(?:at\s+)?\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/ig,"");
+ return t.replace(/\s+/g," ").trim();
+}
+
+function cleanTitle(text){
+ let t=stripScheduling(text);
+ t=t.replace(/^(?:and\s+)?(?:please\s+)?(?:just\s+)?(?:put|add)\s+(?:it|that)\s+(?:on|to)\s+(?:the\s+)?list\b/ig,"");
+ t=t.replace(/^(?:please\s+)?remind\s+me\s+(?:to\s+)?/i,"");
+ t=t.replace(/^(?:remember\s+to\s+|don't\s+let\s+me\s+forget\s+|i\s+(?:need|have|want)\s+to\s+|i\s+need\s+|i\s+have\s+to\s+)/i,"");
+ t=t.replace(/\b(?:right now|for now)\b/ig,"");
  t=t.replace(/\s+/g," ").replace(/\s+([,.!?])/g,"$1").trim();
+ if(!t)return "Task";
  return t.charAt(0).toUpperCase()+t.slice(1);
 }
-function taskText(t){
- let s=fmt(new Date(t.due));
- if(t.recur)s+=" · every "+t.recur.n+" "+t.recur.unit+(t.recur.n===1?"":"s");
- return s;
+
+function extractTask(text){
+ let t=text.trim();
+ // Scheduling phrases are not the task. Pull them out and keep the rest.
+ let title=cleanTitle(t);
+ // Common conversational filler should not become the task.
+ title=title.replace(/^(?:okay|ok|yeah|yes|sure)[,\s]+/i,"").trim();
+ return title||"Task";
 }
+
+function dueLabel(t){
+ let d=new Date(t.due);
+ let label=fmt(d);
+ if(t.time)label+=" · "+t.time;
+ if(t.recur)label+=` · every ${t.recur.n} ${t.recur.unit}${t.recur.n===1?"":"s"}`;
+ return label;
+}
+
 function render(){
  const box=$("tasks"), now=dateOnly(new Date());
- let visible=tasks.filter(t=>!t.done && dateOnly(new Date(t.due))<=now).sort((a,b)=>a.due.localeCompare(b.due));
- box.innerHTML=visible.length?visible.map(t=>`<div class="task"><button class="check" data-done="${t.id}"></button><div class="task-main"><div class="task-title">${esc(t.title)}</div><div class="task-meta">${taskText(t)}</div></div><button class="later" data-later="${t.id}">Later</button></div>`).join(""):'<div class="empty">Nothing you need to do today. Nice.</div>';
+ let visible=tasks.filter(t=>!t.done && dateOnly(new Date(t.due))<=now)
+   .sort((a,b)=>(a.due+a.time||"").localeCompare(b.due+b.time||""));
+ box.innerHTML=visible.length?visible.map(t=>`
+ <div class="task">
+   <button class="check" data-done="${t.id}"></button>
+   <div class="task-main">
+     <div class="task-title">${esc(t.title)}</div>
+     <div class="task-meta">${esc(dueLabel(t))}</div>
+   </div>
+   <button class="later" data-later="${t.id}">Later</button>
+ </div>`).join(""):'<div class="empty">Nothing you need to do today. Nice.</div>';
  document.querySelectorAll("[data-done]").forEach(b=>b.onclick=()=>complete(b.dataset.done));
  document.querySelectorAll("[data-later]").forEach(b=>b.onclick=()=>postpone(b.dataset.later));
 }
-function esc(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function addTask(title,due,recur=null){
- let t={id:crypto.randomUUID(),title:cleanTitle(title),due:iso(due),recur,done:false,created:Date.now()};
- tasks.push(t);save();render();return t
+
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+function addTask(title,due,recur=null,time=null){
+ const t={id:crypto.randomUUID(),title:cleanTitle(title),due:iso(due),recur,time,done:false,created:Date.now()};
+ tasks.push(t);save();render();return t;
 }
+
 function complete(id){
- let t=tasks.find(x=>x.id===id); if(!t)return;
- if(t.recur){let d=new Date(t.due); if(t.recur.unit==="day")d=addDays(d,t.recur.n); if(t.recur.unit==="week")d=addDays(d,7*t.recur.n); if(t.recur.unit==="month"){d.setMonth(d.getMonth()+t.recur.n)} if(t.recur.unit==="year")d.setFullYear(d.getFullYear()+t.recur.n); t.due=iso(d)}
- else t.done=true;
- save();render();say(t.recur?`Done. I'll remind you again ${fmt(new Date(t.due))}.`:`Done — I'll leave that one alone.`);
+ const t=tasks.find(x=>x.id===id);if(!t)return;
+ if(t.recur){
+   let d=new Date(t.due);
+   if(t.recur.unit==="day")d=addDays(d,t.recur.n);
+   if(t.recur.unit==="week")d=addDays(d,7*t.recur.n);
+   if(t.recur.unit==="month")d.setMonth(d.getMonth()+t.recur.n);
+   if(t.recur.unit==="year")d.setFullYear(d.getFullYear()+t.recur.n);
+   t.due=iso(d);
+ }else t.done=true;
+ save();render();
+ say(t.recur?`Done. I'll remind you again ${fmt(new Date(t.due))}${t.time?" at "+t.time:""}.`:`Done — I'll leave that one alone.`);
 }
+
 function postpone(id){
- let t=tasks.find(x=>x.id===id);if(!t)return; t.due=iso(addDays(new Date(),1));save();render();say(`Okay. I'll move "${t.title}" to tomorrow.`);
+ const t=tasks.find(x=>x.id===id);if(!t)return;
+ t.due=iso(addDays(new Date(),1));save();render();
+ say(`Okay. I'll move "${t.title}" to tomorrow.`);
 }
-function say(text){chat.push({who:"nudge",text});saveChat();renderChat()}
-function renderChat(){ $("chat").innerHTML=chat.slice(-20).map(x=>`<div class="bubble ${x.who==="me"?"me":"nudge"}">${esc(x.text)}</div>`).join(""); $("chat").scrollTop=$("chat").scrollHeight }
-function ask(text){pending=text;say(text)}
+
+function say(text){
+ chat.push({who:"nudge",text});saveChat();renderChat();
+}
+function renderChat(){
+ $("chat").innerHTML=chat.slice(-20).map(x=>`<div class="bubble ${x.who==="me"?"me":"nudge"}">${esc(x.text)}</div>`).join("");
+ $("chat").scrollTop=$("chat").scrollHeight;
+}
+
+// A conversational task workflow.
+// pending is an object, not a magic string hidden in the text.
+function beginTask(title){
+ pending={title,needDate:false};
+ askDateOrConfirm();
+}
+
+function askDateOrConfirm(){
+ if(!pending)return;
+ if(pending.needDate){
+   say(`When should I put "${pending.title}" on your list?`);
+ }else{
+   say(`Okay. When do you want to do "${pending.title}"?`);
+   pending.needDate=true;
+ }
+}
+
+function finishPending(text){
+ if(!pending)return false;
+
+ const d=parseDate(text);
+ const time=parseTime(text);
+ const r=recurrence(text);
+
+ // "just put it on the list" means TODAY when we're already
+ // discussing a task and the user doesn't specify another date.
+ if(/\b(?:just\s+)?put\s+(?:it|that)\s+(?:on|to)\s+(?:the\s+)?list\b/i.test(text) ||
+    /^(?:add|save)\s+(?:it|that)\s*(?:to\s+the\s+list)?$/i.test(text.trim())){
+   const t=addTask(pending.title,dateOnly(new Date()),r,time?.label||null);
+   pending=null;
+   say(`Got it. "${t.title}" is on today's list.`);
+   return true;
+ }
+
+ // A bare "today" is a perfectly valid answer.
+ if(d){
+   const title=pending.title;
+   const t=addTask(title,d,r,time?.label||null);
+   pending=null;
+   let when=d.toDateString()===dateOnly(new Date()).toDateString()?"today":fmt(d);
+   say(`Got it. I'll put "${t.title}" on your list for ${when}${time?" at "+time.label:""}${r?` and repeat every ${r.n} ${r.unit}${r.n===1?"":"s"}`:""}.`);
+   return true;
+ }
+
+ // User may simply say "yes" after being asked to remember.
+ if(/^(yes|yeah|yep|sure|okay|ok|do it|sounds good)$/i.test(text.trim()) && pending.needDate){
+   say(`Sure. I just need to know when. "Today" works if you want it today.`);
+   return true;
+ }
+
+ // Correct date-only followup even when it is phrased naturally.
+ if(/\b(?:today|tomorrow|tonight|noon|midnight)\b/i.test(text)){
+   const title=pending.title;
+   const dd=parseDate(text)||dateOnly(new Date());
+   const tt=parseTime(text);
+   const t=addTask(title,dd,r,tt?.label||null);
+   pending=null;
+   say(`Got it. "${t.title}" is set for ${fmt(dd)}${tt?" at "+tt.label:""}.`);
+   return true;
+ }
+
+ return false;
+}
+
 function handle(text){
  text=text.trim();if(!text)return;
  chat.push({who:"me",text});saveChat();renderChat();
- let low=text.toLowerCase();
 
+ // First let an existing conversation resolve itself.
  if(pending){
-   if(/^(yes|yep|yeah|sure|okay|ok)$/i.test(text) && pending==="confirm"){say("Okay.");pending=null;return}
-   if(pending.startsWith("WHEN:")){
-     let d=parseDate(text); if(!d){let m=text.match(/(\d+)/); if(m)d=addDays(new Date(),+m[1]);}
-     if(d){addTask(pending.slice(5),d,recurrence(text)); pending=null;say(`Got it. I'll put "${cleanTitle(pending||"that")}" on your list for ${fmt(d)}.`);return}
-     say("Give me a date like “in 30 days,” “next Tuesday,” or “tomorrow.”");return;
+   if(finishPending(text))return;
+
+   // If the user changes the task while answering, treat the new sentence
+   // as a fresh request rather than forcing it through the old question.
+   if(/\b(?:i need|i have to|remind me|remember|put .* on the list|add .* to the list)\b/i.test(text)){
+     pending=null;
+   }else{
+     say(`I can do that. Just give me a simple time like "today", "tomorrow", "at noon today", "next Tuesday", or "in 30 days."`);
+     return;
    }
  }
 
- // Explicit no/deferral language must win over date words.
- if(/\b(i don't need|don't need|not right now|no need)\b/i.test(text)){
-   let d=parseDate(text), title=cleanTitle(text);
-   if(d){let r=recurrence(text);addTask(title,d,r);say(`Got it. Not today. I'll remind you on ${fmt(d)}${r?` and repeat every ${r.n} ${r.unit}${r.n===1?"":"s"}`:""}.`);return}
- }
- let r=recurrence(text), d=parseDate(text);
+ const d=parseDate(text), time=parseTime(text), r=recurrence(text);
+ const lower=text.toLowerCase();
+
+ // Direct, complete request: create immediately.
+ // This is the important path for "have a phone call with Ken Braman today at noon".
  if(d){
-   let title=cleanTitle(text); let t=addTask(title,d,r);
-   say(`Got it. I'll remind you ${fmt(d)}${r?` and repeat every ${r.n} ${r.unit}${r.n===1?"":"s"}`:""}.`);
+   let title=extractTask(text);
+   // If the entire phrase is just scheduling information, ask what the task is.
+   if(!title || /^(today|tomorrow|tonight|noon|midnight|next week)$/i.test(title)){
+     say("Sure. What do you want me to put on your list?");
+     pending={title:"Task",needDate:false};
+     return;
+   }
+   const t=addTask(title,d,r,time?.label||null);
+   say(`Got it. "${t.title}" is on your list for ${d.toDateString()===dateOnly(new Date()).toDateString()?"today":fmt(d)}${time?" at "+time.label:""}${r?` and repeats every ${r.n} ${r.unit}${r.n===1?"":"s"}`:""}.`);
    return;
  }
- if(/^(remind me|remember|don't let me forget|i need to|i need|i have to)\b/i.test(text) || /\b(i need|i have to|remember to)\b/i.test(text)){
-   let title=cleanTitle(text); ask(`When do you want me to remind you about "${title}"?`);
-   pending="WHEN:"+title; return;
- }
- if(/\bwhat am i forgetting\b|\bwhatever\b|\bwhat should i do\b/i.test(low)){
-   say("I can help build that list. Tell me about your home, vehicles, pets, or anything coming up, and I'll ask the useful questions.");
+
+ // "Put X on the list" without a date means today.
+ if(/\b(?:put|add)\b.*\b(?:on|to)\b.*\blist\b/i.test(text)){
+   let title=extractTask(text);
+   const t=addTask(title,dateOnly(new Date()),r,time?.label||null);
+   say(`Done. "${t.title}" is on today's list.`);
    return;
  }
- if(/\bmove\b.*\b(apartment|house|home)\b|\bmoving\b/i.test(low)){
-   say("Absolutely. I can build a moving checklist. What date are you moving?");
-   pending="WHEN:Moving tasks"; return;
+
+ // Explicit reminder request without a date: ask once, naturally.
+ if(/\b(?:remind me|remember to|don't let me forget|i need to|i have to|i've got to|i gotta)\b/i.test(lower)){
+   beginTask(extractTask(text));
+   return;
  }
- if(/\bair filter|hvac|gutters|roof|oil change|cat litter|laundry|sheets|groceries|dishes\b/i.test(low)){
-   ask("Sure. Do you want me to remember that? If so, when should it happen?");
-   pending="WHEN:"+cleanTitle(text); return;
+
+ // Household / life-administration topics can start a conversation.
+ if(/\b(?:air filter|hvac|gutters|roof|oil change|cat litter|laundry|sheets|groceries|dishes|moving|move|plumber|phone call|call)\b/i.test(lower)){
+   beginTask(extractTask(text));
+   return;
  }
- say("I can remember that. Tell me when you want it on your list — for example, “tomorrow,” “in 30 days,” or “next Tuesday.”");
- pending="WHEN:"+cleanTitle(text);
+
+ // "What am I forgetting?" should not create a task.
+ if(/\bwhat am i forgetting\b|\bwhatever\b|\bwhat should i do\b/i.test(lower)){
+   say("I can help with that. Tell me about your home, vehicles, pets, upcoming plans, or anything you keep putting off, and I'll help build the list.");
+   return;
+ }
+
+ say("I can remember things for you. Try something like, “call Ken Braman today at noon,” “change the air filters in 30 days,” or “put laundry on the list.”");
 }
-$("send").onclick=()=>{let v=$("input").value;$("input").value="";handle(v)}
+
+$("send").onclick=()=>{const v=$("input").value;$("input").value="";handle(v)};
 $("input").addEventListener("keydown",e=>{if(e.key==="Enter")$("send").click()});
-$("settings").onclick=()=>{$("follow").value=settings.follow;$("morning").value=settings.morning;$("settingsDialog").showModal()}
-$("closeSettings").onclick=()=>{settings.follow=$("follow").value;settings.morning=$("morning").value;localStorage.setItem(SETTINGS,JSON.stringify(settings));$("settingsDialog").close()}
+
+$("settings").onclick=()=>{
+ $("follow").value=settings.follow;$("morning").value=settings.morning;$("settingsDialog").showModal();
+};
+$("closeSettings").onclick=()=>{
+ settings.follow=$("follow").value;settings.morning=$("morning").value;
+ localStorage.setItem(SETTINGS,JSON.stringify(settings));$("settingsDialog").close();
+};
+
 $("mic").onclick=()=>{
  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(!SR){say("Voice input isn't supported by this browser. You can still type to me.");return}
@@ -186,8 +374,12 @@ $("mic").onclick=()=>{
  r.onerror=()=>say("I didn't catch that. Try again.");
  r.start();
 };
-if(!chat.length)say("Hey. I'm Nudge. Tell me something you need to remember, and I'll help figure out when it belongs on your list.");
+
+if(!chat.length){
+ say("Hey. I'm Nudge. Tell me what you need to remember. You don't have to phrase it perfectly.");
+}
 render();renderChat();
+
 if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body>
