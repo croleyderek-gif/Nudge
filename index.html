@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<link rel="manifest" href="manifest.json">
+<title>Nudge — Remember It For Me</title>
+<style>
+:root{--bg:#f5f5f3;--card:#fff;--text:#171717;--muted:#737373;--line:#e5e5e5;--accent:#111827;--green:#15803d;--danger:#b91c1c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--text)}
+.app{max-width:720px;margin:auto;min-height:100vh;padding:22px 18px 110px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.brand{font-weight:800;font-size:24px;letter-spacing:-.5px}.date{font-size:13px;color:var(--muted)}
+h1{font-size:34px;letter-spacing:-1.2px;margin:10px 0 4px}.sub{color:var(--muted);margin-bottom:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px;margin:12px 0;box-shadow:0 2px 12px #00000006}
+.section-title{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:10px}
+.task{display:flex;gap:12px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line)}
+.task:last-child{border-bottom:0}.task input{width:22px;height:22px;accent-color:var(--accent)}.task-main{flex:1}.task-title{font-size:16px}.meta{font-size:12px;color:var(--muted);margin-top:3px}
+.empty{color:var(--muted);padding:10px 0}.calendar{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)}.calendar:last-child{border:0}
+.voice{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);width:min(680px,calc(100% - 32px));display:flex;gap:10px}
+button{border:0;border-radius:15px;padding:14px 17px;font:inherit;font-weight:650;cursor:pointer}
+.talk{flex:1;background:var(--accent);color:#fff;box-shadow:0 8px 24px #0002}.mic{font-size:20px;padding:12px 18px}
+.secondary{background:#fff;border:1px solid var(--line)}.small{padding:9px 12px;font-size:13px}
+.input-row{display:flex;gap:8px;margin-top:12px}.input-row input{flex:1;border:1px solid var(--line);border-radius:14px;padding:13px;font:inherit;background:#fff}
+.status{font-size:13px;color:var(--muted);min-height:18px;margin-top:8px}
+.pill{display:inline-block;background:#f0f0ef;border-radius:999px;padding:5px 9px;font-size:12px;color:#525252}
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:11px 15px;border-radius:12px;display:none;z-index:5;font-size:14px}
+.modal{position:fixed;inset:0;background:#0006;display:none;align-items:flex-end;justify-content:center;z-index:4}.sheet{background:#fff;width:min(720px,100%);border-radius:24px 24px 0 0;padding:20px;max-height:85vh;overflow:auto}.sheet h2{margin-top:0}
+.row{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:10px 0}.row input,.row select{padding:10px;border:1px solid var(--line);border-radius:10px;font:inherit}
+@media(min-width:700px){.app{padding-top:35px}.modal{align-items:center}.sheet{border-radius:24px}}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+<div class="app">
+<header><div class="brand">Nudge</div><button class="secondary small" onclick="openSettings()">Settings</button></header>
+<h1>Today</h1><div class="sub" id="greeting">Here's what matters today.</div>
+
+<div class="card">
+  <div class="section-title">Your stuff</div>
+  <div id="tasks"></div>
+  <div class="input-row">
+    <input id="quickInput" placeholder="Tell me something to remember…" onkeydown="if(event.key==='Enter') quickAdd()">
+    <button class="secondary" onclick="quickAdd()">Add</button>
+  </div>
+  <div class="status" id="voiceStatus"></div>
+</div>
+
+<div class="card">
+  <div class="section-title">Calendar</div>
+  <div id="calendar">
+    <div class="calendar"><span>No calendar connected yet.</span><span class="pill">Optional</span></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="section-title">Nudge</div>
+  <div id="nudgeText">I’ll keep the list simple. Talk to me when you need to add, finish, postpone, or remove something.</div>
+</div>
+</div>
+
+<div class="voice">
+  <button class="talk" onclick="startVoice()"><span class="mic">🎙️</span> Talk to Nudge</button>
+</div>
+
+<div class="modal" id="settingsModal" onclick="if(event.target===this)closeSettings()">
+<div class="sheet">
+<h2>Settings</h2>
+<div class="row"><span>Follow-up questions</span><select id="follow"><option value="normal">Normal</option><option value="off">Off</option><option value="persistent">Persistent</option></select></div>
+<div class="row"><span>Morning summary</span><select id="morning"><option>On</option><option>Off</option></select></div>
+<div class="row"><span>Personality</span><select id="personality"><option>Casual</option><option>Friendly</option><option>Straightforward</option><option>Funny</option></select></div>
+<p class="meta">This prototype stores your reminders on this device. No bank connection or other account access is required.</p>
+<button class="secondary" onclick="closeSettings()">Close</button>
+</div></div>
+
+<script>
+const KEY='nudge_tasks_v1';
+let tasks=JSON.parse(localStorage.getItem(KEY)||'[]');
+let recognition=null;
+
+function save(){localStorage.setItem(KEY,JSON.stringify(tasks));render();}
+function toast(s){const t=document.getElementById('toast');t.textContent=s;t.style.display='block';setTimeout(()=>t.style.display='none',2200)}
+function render(){
+  const d=new Date(), today=d.toISOString().slice(0,10);
+  document.getElementById('greeting').textContent=d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})+'.';
+  const el=document.getElementById('tasks'); el.innerHTML='';
+  const due=tasks.filter(t=>!t.done && t.due<=today).sort((a,b)=>a.due.localeCompare(b.due));
+  if(!due.length){el.innerHTML='<div class="empty">You’re good. Nothing due today.</div>'}
+  due.forEach(t=>{
+    const row=document.createElement('div');row.className='task';
+    row.innerHTML=`<input type="checkbox" onchange="completeTask('${t.id}')"><div class="task-main"><div class="task-title">${esc(t.title)}</div><div class="meta">${t.due===today?'Today':('Due '+t.due)}${t.recurring?' · '+esc(t.recurring):''}</div></div><button class="secondary small" onclick="postpone('${t.id}')">Later</button>`;
+    el.appendChild(row);
+  });
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+function completeTask(id){const t=tasks.find(x=>x.id===id);if(t){t.done=true;toast('Done.');save()}}
+function postpone(id){const t=tasks.find(x=>x.id===id);if(!t)return;const d=new Date(t.due+'T12:00:00');d.setDate(d.getDate()+1);t.due=d.toISOString().slice(0,10);toast('Moved to tomorrow.');save()}
+function quickAdd(){const input=document.getElementById('quickInput');const text=input.value.trim();if(!text)return;handleSpeech(text);input.value=''}
+function addTask(title,due){tasks.push({id:crypto.randomUUID(),title,due:due||new Date().toISOString().slice(0,10),done:false});save()}
+function parseDate(text){
+  const now=new Date(); let d=new Date(now);
+  let m=text.match(/in\\s+(\\d+)\\s+(day|days|week|weeks|month|months)/i);
+  if(m){let n=+m[1], unit=m[2].toLowerCase(); if(unit.startsWith('day'))d.setDate(d.getDate()+n); else if(unit.startsWith('week'))d.setDate(d.getDate()+n*7); else d.setMonth(d.getMonth()+n);return d.toISOString().slice(0,10)}
+  if(/tomorrow/i.test(text)){d.setDate(d.getDate()+1);return d.toISOString().slice(0,10)}
+  if(/next week/i.test(text)){d.setDate(d.getDate()+7);return d.toISOString().slice(0,10)}
+  if(/today/i.test(text))return now.toISOString().slice(0,10);
+  return now.toISOString().slice(0,10)
+}
+function cleanTitle(text){return text.replace(/^(hey\\s+)?(nudge[, ]*)?/i,'').replace(/^remind me (to )?/i,'').replace(/\\s+(today|tomorrow|next week|in\\s+\\d+\\s+(day|days|week|weeks|month|months))\\.?$/i,'').trim().replace(/[.?!]+$/,'')}
+function handleSpeech(text){
+  const lower=text.toLowerCase();
+  if(/^(done|did it|yep|yes|got it|already handled)/i.test(lower)){
+    const due=tasks.find(t=>!t.done); if(due){due.done=true;toast('Marked "'+due.title+'" done.');save();return}
+  }
+  const cancel=lower.match(/(?:forget|cancel|remove|delete) (?:that|the )?(.+)/i);
+  if(cancel){const term=cancel[1].replace(/[.?!]+$/,'');const idx=tasks.findIndex(t=>t.title.toLowerCase().includes(term));if(idx>=0){toast('Removed "'+tasks[idx].title+'".');tasks.splice(idx,1);save();return}}
+  const postponeMatch=lower.match(/(?:push|move|postpone) (?:that|it) (?:to )?(tomorrow|next week)/i);
+  if(postponeMatch){const due=tasks.find(t=>!t.done);if(due){due.due=parseDate(postponeMatch[1]);toast('Moved "'+due.title+'".');save();return}}
+  const title=cleanTitle(text);
+  if(title){addTask(title,parseDate(text));toast('I’ll remember that.')}
+}
+function startVoice(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast('Voice input needs Chrome on a secure web connection.');return}
+  if(recognition){recognition.stop();recognition=null;return}
+  recognition=new SR();recognition.lang='en-US';recognition.interimResults=false;recognition.maxAlternatives=1;
+  document.getElementById('voiceStatus').textContent='Listening…';
+  recognition.onresult=e=>{const text=e.results[0][0].transcript;document.getElementById('voiceStatus').textContent='You said: '+text;handleSpeech(text)};
+  recognition.onerror=e=>{document.getElementById('voiceStatus').textContent='Voice error: '+e.error};
+  recognition.onend=()=>{recognition=null};
+  recognition.start();
+}
+function openSettings(){document.getElementById('settingsModal').style.display='flex'}
+function closeSettings(){document.getElementById('settingsModal').style.display='none'}
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+render();
+</script>
+</body>
+</html>
